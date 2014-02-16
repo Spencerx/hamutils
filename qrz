@@ -90,7 +90,9 @@ if (-e ($loginfile)) {
 }
 
 if ($#ARGV < 0 || length($ARGV[0]) == 0) {
-  if ($ENV{'USER'} eq 'eggdrop' or $ENV{'USERNAME'} eq 'eggdrop') {
+  my $username = $ENV{'USER'} || $ENV{'USERNAME'} || getpwuid($<);
+
+  if ($username eq 'eggdrop') {
     print "usage: !qrz <callsign>|<name>|<grid>|<qth>\n";
   } else {
     print "usage: $0 <callsign>|<name>|<grid>|<qth>\n";
