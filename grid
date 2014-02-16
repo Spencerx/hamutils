@@ -55,8 +55,9 @@ if (-e ($loginfile)) {
 }
 
 if ($#ARGV < 0 || length($ARGV[0]) == 0) {
+  my $username = $ENV{USER} || $ENV{USERNAME} || getpwuid($<);
 
-  if ($ENV{'USER'} eq 'eggdrop' or $ENV{'USERNAME'} eq 'eggdrop') {
+  if ($username eq 'eggdrop') {
     print "usage: !grid <grid>|<lat>,<lon>|<qth>\n";
   } else {
     print "usage: $0 <grid>|<lat>,<lon>|<qth>\n";
