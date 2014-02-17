@@ -46,6 +46,7 @@ use Math::Trig 'great_circle_bearing';
 use Encode qw(decode);
 use I18N::Langinfo qw(langinfo CODESET);
 use URI::Escape;
+use POSIX qw(strftime);
 
 # change this to 0 to always exit with success
 our $exitnonzeroonerror = 1;
@@ -193,7 +194,7 @@ if ($loginavail) {
 
 our ($retcall, $country, $name, $class, $mail, $grid, $lat, $lon, $geosrc,
 			$born, $prevcall, $email, $codes, $website, $iota, $lotw, $eqsl,
-			$mailqsl);
+			$mailqsl, $expiration);
 
 getAndParseData();
 
@@ -223,6 +224,9 @@ if (!defined($mail)) {
 }
 
 print "$bold$retcall$unbold: $country: $name";
+if (defined($expiration) && ($expiration lt strftime("%Y-%m-%d", gmtime))) {
+  print " ${bold}\[EXPIRED\]${unbold}";
+}
 if (defined($email)) {
   print " -- $email";
 }
@@ -553,6 +557,11 @@ sub getAndParseData {
 	  $geosrc = $val;
 	}
       }
+      if ($key =~ /Expires/) {
+	print "Expires: $val\n";
+	$expiration = $val;
+	next;
+      }
       if ($key =~ /Class/) {
 	$class = $val;
 	if ( /Codes:<\/b>\s*([A-Z]+)\s*</ ) {
@@ -717,5 +726,4 @@ sub coordToGrid {
   return $grid;
 }
 
-# vim: set ts=2 sw=2 sts=2
-
+# vim: set ts=8 sw=2 sts=2
