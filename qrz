@@ -30,7 +30,7 @@
 # policies, either expressed or implied, of Chris Ruvolo.
 
 
-# in order to retrieve email addresses, you need to put these two lines in
+# in order to retrieve info from qrz.com, you need to put these two lines in
 # $HOME/.qrzlogin:
 
 # $login_callsign="YOURCALL";
@@ -77,7 +77,6 @@ our $mylon = undef;
 
 our $login_callsign = undef;
 our $login_password = undef;
-our $loginavail = undef;
 my $loginfile = $ENV{'HOME'} . "/.qrzlogin";
 my $cookiefile = $ENV{'HOME'} . "/.qrzcookies";
 my $baseurl = "http://www.qrz.com";
@@ -85,9 +84,8 @@ my $baseurl = "http://www.qrz.com";
 if (-e ($loginfile)) {
   chmod 0600, $loginfile;
   require($loginfile);
-  $loginavail = 1;
 } else {
-  $loginavail = 0;
+  die "error: unable to read file \$HOME/.qrzlogin"
 }
 
 if ($#ARGV < 0 || length($ARGV[0]) == 0) {
@@ -169,27 +167,26 @@ if (defined($useragent)) {
   $useragentoption = "-U \"$useragent\"";
 }
 
-if ($loginavail) {
-  if (!-e $cookiefile) {
-    #print "no cookie file -- doing login.\n";
-    doLogin();
-  }
+if (!-e $cookiefile) {
+  #print "no cookie file -- doing login.\n";
+  doLogin();
+}
 
-  my $needlogin = 0;
-  open (COOKIES, "<", $cookiefile);
-  while (<COOKIES>) {
-    if (/^\.qrz\.com.*FALSE\t([0-9]+)/) {
-      my $cookietime = $1;
-      if ($cookietime <= time()) {
-	$needlogin = 1;
-      }
+# note: this code depends on the wget cookie format
+my $needlogin = 0;
+open (COOKIES, "<", $cookiefile);
+while (<COOKIES>) {
+  if (/^\.qrz\.com.*FALSE\t([0-9]+)/) {
+    my $cookietime = $1;
+    if ($cookietime <= time()) {
+      $needlogin = 1;
     }
   }
-  close COOKIES;
-  if ($needlogin) {
-    #print "cookies expired -- doing login.\n";
-    doLogin();
-  }
+}
+close COOKIES;
+if ($needlogin) {
+  #print "cookies expired -- doing login.\n";
+  doLogin();
 }
 
 our ($retcall, $country, $name, $class, $mail, $grid, $lat, $lon, $geosrc,
