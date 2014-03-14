@@ -262,12 +262,24 @@ if (defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
 }
 print "\n";
 print "$mail\n";
+
+if (defined($lat) and not defined($grid)) {
+  $grid = coordToGrid($lat, $lon);
+
+  if (defined($geosrc) and $geosrc eq "dxcc") {
+    # limited accuracy
+    $grid = substr($grid, 0, 2);
+  }
+}
 if (defined($grid)) {
   print "$grid";
 }
 #if (defined($grid) and "$grid" ne "bogus" and not defined($lat)) {
 if (defined($grid) and not defined($lat)) {
   gridToCoord($grid);
+  print " [approx]:";
+}
+if ($geosrc eq "dxcc") {
   print " [approx]:";
 }
 if (defined($lat)) {
