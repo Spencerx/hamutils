@@ -452,6 +452,12 @@ sub getAndParseData {
     }
 
     if (/The search for <.*> produced no result/) {
+      while(<WGET>) {
+	if (/looks like a callsign from <[^>]*>([^<]+)</) {
+	  print uc($call), " not found -- $1?\n";
+	  exit $exitnonzeroonerror;
+	}
+      }
       print uc($call), " not found\n";
       exit $exitnonzeroonerror;
     }
