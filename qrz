@@ -476,7 +476,7 @@ sub getAndParseData {
       exit $exitnonzeroonerror;
     }
 
-    if ($calldata and /cland.*<a.*target="[_0-9a-zA-Z]*">\s*([^<]+)\s*<\/a>/) {
+    if ($calldata and /\/atlas.*<span style="position:relative;top[^>]*>([^<]*)</) {
       $country = $1;
       #next;
     }
