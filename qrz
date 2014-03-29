@@ -124,7 +124,7 @@ while ($i <= $#ARGV) {
 my $codeset = langinfo(CODESET);
 $call = decode($codeset, $call);
 
-if ($call =~ /^(grid:)? ?([A-R]{2}[0-9]{2}([a-x]{2})?)/i) {
+if ($call =~ /^(grid:)? ?([A-R]{2}[0-9]{2}([a-x]{2})?$)/i) {
   $call = $2;
   $type = "grid";
 } elsif ($call =~ /^\s*(\d?[a-z]{1,2}[0-9Øø]{1,4}[a-z]{1,4})\s*$/i) {
