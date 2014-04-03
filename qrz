@@ -616,10 +616,10 @@ sub getAndParseData {
     if ($detail and /td class="ha"><a href="[^"]*">([^<]+)<\/a><\/td><td class="hc">\+? *Previous callsign<\/td>/) {
       $prevcall = $1;
     }
-    if ($detail and not defined($lat) and /var cs_lat = "\s*([0-9.-]+)";/ ) {
+    if (not defined($lat) and /var cs_lat = "\s*([0-9.-]+)";/ ) {
       $lat = $1;
     }
-    if ($detail and not defined($lon) and /var cs_lon = "\s*([0-9.-]+)";/ ) {
+    if (not defined($lon) and /var cs_lon = "\s*([0-9.-]+)";/ ) {
       $lon = $1;
     }
     if (/end detail/) {
