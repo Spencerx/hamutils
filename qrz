@@ -499,7 +499,7 @@ sub getAndParseData {
       $mail =~ s/<\/p>//g;
       next;
     }
-    if ($calldata and /var qmail='([^']+)'/) {
+    if (/var qmail='([^']+)'/) {
       my $qmail = $1;
       my $cl = "";
       my $dem ="";
