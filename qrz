@@ -274,8 +274,8 @@ if (defined($lat) and not defined($grid)) {
 if (defined($grid)) {
   print "$grid";
 }
-#if (defined($grid) and "$grid" ne "bogus" and not defined($lat)) {
-if (defined($grid) and not defined($lat)) {
+if (defined($grid) and "$grid" ne "bogus" and not defined($lat)) {
+#if (defined($grid) and not defined($lat)) {
   gridToCoord($grid);
   print " [approx]:";
 }
@@ -480,9 +480,9 @@ sub getAndParseData {
       $country = $1;
       #next;
     }
-    if ($calldata and /span class="csgn">(<[^>]*>)*([A-Z0-9]+)</ ) {
-      $retcall = $2;
-      next;
+    if ($calldata and /span class="csgnl[^"]*">,?\s*([A-Z0-9]+)</ ) {
+      $retcall = $1;
+      #next;
     }
     if (/Login is required for additional detail./) {
       # For some reason it times out a login even though the cookies have not
@@ -492,10 +492,11 @@ sub getAndParseData {
       getAndParseData();
       return;
     }
-    if (defined($retcall) and length($retcall) > 0 and $calldata and !defined($name) and /^([^<]+)<span class="[^"]*none"[^>]*>[^<]*<\/span><br *\/>(.*)$/) {
+    if (defined($retcall) and length($retcall) > 0 and $calldata and !defined($name) and /^<p class="m0">([^<]+)<span[^>]*>[^<]*<\/span><br *\/>(.*)$/) {
       $name = $1;
       $mail = $2;
       $mail =~ s/<br *\/>/; /g;
+      $mail =~ s/<\/p>//g;
       next;
     }
     if ($calldata and /var qmail='([^']+)'/) {
@@ -568,6 +569,11 @@ sub getAndParseData {
 	  $lon = undef;
 	} elsif ($val =~ /Unknown/) {
 	  $geosrc = "?";
+	} elsif ($val =~ /none/) {
+	  $geosrc = $val;
+	  $grid = "bogus";
+	  $lat = undef;
+	  $lon = undef;
 	} else {
 	  $geosrc = $val;
 	}
