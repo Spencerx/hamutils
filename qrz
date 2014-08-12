@@ -335,6 +335,7 @@ sub doLogin {
   #}
 
   open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logingeturl");
+  binmode(WGET, ":utf8");
   while (<WGET>) {
     chomp;
 
@@ -372,6 +373,7 @@ sub doLogin {
 		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
 		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password' " .
 		    "'$loginurl'");
+  binmode(WGET, ":utf8");
   while (<WGET>) {
     #print $_;
     if ( /Having trouble?/ ) {
@@ -394,6 +396,7 @@ sub getAndParseData {
 
   open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
 		    "--load-cookies $cookiefile '$url'");
+  binmode(WGET, ":utf8");
   while (<WGET>) {
     #print;
     chomp;
