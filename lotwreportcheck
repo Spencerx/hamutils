@@ -1,0 +1,179 @@
+#!/usr/bin/perl -w
+# Compare LoTW last known upload date with your ADIF log files and lotw QSL
+# report.  Produces report of QSOs which should be confirmed, but are not.
+# Licensed under a 2-clause BSD license.
+
+# ----------------
+# Copyright 2014 Chris Ruvolo (KC2SYK). All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# 	this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# 	this list of conditions and the following disclaimer in the
+# 	documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY CHRIS RUVOLO ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+# EVENT SHALL CHRIS RUVOLO OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# The views and conclusions contained in the software and documentation are
+# those of the authors and should not be interpreted as representing official
+# policies, either expressed or implied, of Chris Ruvolo.
+# ----------------
+
+# A QSO is considered "should be confirmed" if it is in your log, and the
+# remote station has a known LoTW upload date that is more recent than your
+# log, and if there is no QSL record in the LoTW report.
+#
+# Retreive your LoTW report from here:
+# 	https://lotw.arrl.org/lotwuser/qsos?qsoscmd=adif 
+# 
+# Input the following parameters:
+# - Show QSLs received since: *input a date corresponding to the earliest log
+#   you wish to check*
+# - Include QSL detail: optional.  If selected, LoTW include DXCC, grid and
+#   zone information.  Does not change output.
+# - Your Call Sign: *select callsign which corresponds to your logs you wish to
+#   check, or "Any"*
+#
+# The file downloaded will be "lotwreport.adi".  Use this as the first
+# parameter.
+#
+# Last known LoTW upload date is maintained in a list compiled by WD5EAE.  wget
+# is required to retrieve it.  Source: http://www.wd5eae.org/LoTW_Data.txt
+#
+# Requires wget.
+#
+# known bugs:
+# - only checks one QSO per date
+# - assumes ADIF log files are with one QSO per line like those produced by
+#   fldigi, WSJT-X, and xlog. LoTW report ADIF is handled separately.
+
+use strict;
+
+if ($#ARGV < 0 || length($ARGV[0]) == 0) {
+  print "usage: $0 lotwreport.adi mylog1.adif [mylog2.adif mylog*.adif  ...]\n";
+  print "  first parameter must be the LoTW report with QSLs.\n";
+  print "  subsequent parameters are for ADIF logs to check.\n";
+  exit 1;
+}
+
+my $url = "http://www.wd5eae.org/LoTW_Data.txt";
+my $lotwreport = $ARGV[0];
+
+# load callsigns and dates for QSOs from ADIF logs
+my %qsos; # hash of a list joined with commas
+my $i = 1;
+while ($i <= $#ARGV) {
+  #print "reading $ARGV[$i]\n";
+  open (ADIF, "<", $ARGV[$i]) or die ("unable to open ADIF log");
+  while (<ADIF>) {
+    my $date = undef;
+    my $call = undef;
+    if (/<QSO_DATE:\d+>(\d+).*<CALL:\d+>([^ <]+)/i) {
+      $date = $1;
+      $call = $2;
+    }
+    if (/<CALL:\d+>([^ <]+).*<QSO_DATE:\d+>(\d+)/i) {
+      # order differs
+      $call = $1;
+      $date = $2;
+    }
+
+    if (defined $call and defined $date) {
+      if (!defined $qsos{$call}) {
+	$qsos{$call} = $date;
+	#print "$call: $date\n";
+      } else {
+	my @dates = split (/,/, $qsos{$call});
+	push @dates, $date;
+	$qsos{$call} = join(',', @dates);
+	#print "$call: @dates\n";
+      }
+    }
+  }
+  $i++;
+  close ADIF;
+}
+
+# read QSLs from lotw report file
+my $call = undef;
+my $date = undef;
+my %qsls; # hash of a list joined with commas
+open (LOTWREPORT, "<", $lotwreport) or die ("unable to open lotw report");
+while (<LOTWREPORT>) {
+  if (/<CALL:\d+>(\S+)/) {
+    $call = $1;
+    $date = undef;
+  }
+
+  if (defined $call and /<QSO_DATE:\d+>(\d+)/) {
+    $date = $1;
+
+    if (!defined $qsls{$call}) {
+      $qsls{$call} = $date;
+      #print "report: $call: $date\n";
+      $call = undef; $date = undef;
+    } else {
+      my @dates = split (/,/, $qsls{$call});
+      push @dates, $date;
+      $qsls{$call} = join(',', @dates);
+      #print "report: $call: @dates\n";
+      $call = undef; $date = undef;
+    }
+  }
+}
+close LOTWREPORT;
+
+
+# compare QSO dates to QSLs and last LoTW upload date, print output
+
+# if a local cache is available (runs really fast):
+#my $lotwdatefile=$ENV{'HOME'} . "/.lotw-dates.txt";
+#open (LOTWDATES, "<", $lotwdatefile) or die "unable to open lotw date file";
+open (LOTWDATES, '-|', "wget -q -O - $url") or die "unable to retreive lotw dates";
+while (<LOTWDATES>) {
+  chomp;
+  s/\x0D$//;
+  if (/^([A-Z0-9\/]+)(,|: )(\d{4}-\d{2}-\d{2})/i) {
+    my $call = $1;
+    my $uldate = $3;
+    $uldate =~ s/-//g;
+    if (defined $qsos{$call}) {
+      foreach my $qsodate (split /,/, $qsos{$call}) {
+
+	my @qsldates = undef;
+	if (defined $qsls{$call}) {
+	  @qsldates = split /,/, $qsls{$call};
+	}
+
+	#print "$call\tqso: $qsodate\tqsls: " .
+	#	(defined $qsls{$call} ? "@qsldates" : "") . "\n";
+
+	#if (defined $qsls{$call} and /$qsodate/ ~~ @qsldates) {
+	#  print "$call\tqsl found:$qsodate\n";
+	#}
+
+	if ($qsodate lt $uldate and	  # QSO has occured before last upload
+	    not (defined $qsls{$call} and
+	      /$qsodate/ ~~ @qsldates)) { # don't have a QSL for this call&date
+
+	  print "missing: $call\tqso: $qsodate\tlast upload: $uldate\n";
+	}
+      }
+    }
+  }
+}
+close LOTWDATES;
+

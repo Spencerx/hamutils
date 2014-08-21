@@ -84,3 +84,52 @@ FM18lv: 38.8978378, -77.0365123: Washington, DC, USA -- 0.0 km, 353° from FM18l
 $ grid 52.000,0.000
 JO02aa: 52.000, 0.000: North Hertfordshire District, Hertfordshire, UK -- 5896.0 km, 49° from FM18lv
 ```
+
+##lotwreportcheck
+
+Compare LoTW last known upload date with your ADIF log files and lotw QSL
+report.  Produces report of QSOs which should be confirmed, but are not.
+
+A QSO is considered "should be confirmed" if it is in your log, and the remote
+station has a known LoTW upload date that is more recent than your log, and if
+there is no QSL record in the LoTW report.
+
+###LoTW report
+
+Retreive your LoTW report from here:
+https://lotw.arrl.org/lotwuser/qsos?qsoscmd=adif 
+
+Input the following parameters:
+- Show QSLs received since: *input a date corresponding to the earliest log
+you wish to check*
+- Include QSL detail: optional.  If selected, LoTW include DXCC, grid and
+zone information.  Does not change output.
+- Your Call Sign: *select callsign which corresponds to your logs you wish to
+check, or "Any"*
+
+The file downloaded will be "lotwreport.adi".  Use this as the first
+parameter to lotwreportcheck.
+
+Last known LoTW upload date is maintained in a list compiled by WD5EAE.  wget
+is required to retrieve it.  Source: http://www.wd5eae.org/LoTW_Data.txt
+
+###Known bugs
+- only checks one QSO per date
+- assumes ADIF log files are with one QSO per line like those produced by
+  fldigi, WSJT-X, and xlog. LoTW report ADIF is handled separately.
+
+###Example use
+
+```
+$ lotwreportcheck lotwreport.adi ~/.wsjtx/*adi
+missing: EA7AHG qso: 20140421   last upload: 20140725
+missing: EI1DG  qso: 20140507   last upload: 20140731
+missing: K0GDI  qso: 20140518   last upload: 20140706
+missing: KC0CDM qso: 20140719   last upload: 20140807
+missing: KC8NN  qso: 20140418   last upload: 20140805
+missing: PA3FUJ qso: 20140518   last upload: 20140722
+missing: RA2FIA qso: 20140424   last upload: 20140718
+missing: SV2DFK qso: 20140425   last upload: 20140630
+missing: ZS6WN  qso: 20140425   last upload: 20140731
+```
+
