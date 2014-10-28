@@ -220,6 +220,10 @@ if (!defined($mail)) {
   $mail="no address on file";
 }
 
+if (!defined($name)) {
+  $name="no name on file";
+}
+
 print "$bold$retcall$unbold: $country: $name";
 if (defined($expiration) && ($expiration lt strftime("%Y-%m-%d", gmtime))) {
   print " ${bold}\[EXPIRED\]${unbold}";
