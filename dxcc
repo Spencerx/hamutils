@@ -1,0 +1,145 @@
+#!/usr/bin/perl -w
+#
+# Lookup DXCC for given call or prefix
+#
+#use strict;
+
+my $ctydat=$ENV{'HOME'} . "/.cty.dat";
+
+# change this to 0 to always exit with success
+our $exitnonzeroonerror = 1;
+
+# change this to set the preferred method of terminal highlighting
+#our $highlight="none";
+#our $highlight="irc";
+our $highlight="vt100";
+
+## end config options
+
+my @lastentity = undef;
+my @records;
+
+my $cfgfile = $ENV{'HOME'} . "/.dxcc_cfg";
+if (-e ($cfgfile)) {
+  require($cfgfile);
+}
+
+if ($#ARGV < 0 || length($ARGV[0]) == 0) {
+  my $username = $ENV{'USER'} || $ENV{'USERNAME'} || getpwuid($<);
+
+  if ($username eq 'eggdrop') {
+    print "usage: !dxcc <callsign>|<prefix>\n";
+  } else {
+    print "usage: $0 <callsign>|<prefix>\n";
+  }
+  exit $exitnonzeroonerror;
+}
+
+my $term = uc $ARGV[0];
+
+my $bold = "";
+my $unbold = "";
+
+if ($highlight eq "vt100") {
+  $bold = "\e[1m";
+  $unbold = "\e[0m";
+} elsif ($highlight eq "irc" ) {
+  $bold = "\002";
+  $unbold = "\002";
+}
+
+open(CTYDAT, "<", $ctydat) or die "unable to find cty.dat file: $ctydat ";
+while (<CTYDAT>) {
+  chomp;
+  s/\x0D$//; #CRLF terminators
+
+  if (/^[a-z]/i) {
+    # entity
+    my @entity = split(/:\s*/);
+
+    if ($entity[7] =~ /^\*/) {
+      $entity[7] =~ s/^\*//;
+      $entity[0] .= " (not DXCC)";
+    }
+
+    #print "$entity[7]: $entity[0]\n";
+    @lastentity = @entity;
+
+  } elsif (/^\s/) {
+    # prefixes/calls
+    die "cty.dat formatting error" unless @lastentity;
+    
+    s/^\s+//;
+    s/;\s*$//;
+    my @prefixes = split(/,/);
+
+    for (@prefixes) {
+      my $length;
+      my $prefix;
+      my $pattern;
+      my $itu;
+      my $cq;
+      my $dxcc;
+
+      if (/\[(\d+)\]/) {
+	$itu = $1;
+      } else {
+	$itu = $lastentity[2];
+	$itu =~ s/^0*//;
+      }
+      if (/\((\d+)\)/) {
+	$cq = $1;
+      } else {
+	$cq = $lastentity[1];
+	$cq =~ s/^0*//;
+      }
+
+      $prefix = $_;
+      $prefix =~ s/=?([^\(\[]*)(\(\d+\))?(\[\d+\])?/$1/;
+      $length = length $prefix;
+
+      if (/^=/) {
+	$pattern = "^$prefix\$";
+      } else {
+	$pattern = "^$prefix";
+      }
+
+      $dxcc = $lastentity[7];
+      $name = $lastentity[0];
+      $cont = $lastentity[3];
+      $lat = $lastentity[4];
+      $lon = $lastentity[5];
+      $tz = -1 * $lastentity[6];  # sign is reversed
+
+      push @records, join(',', $length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz);
+      #print "$prefix: $dxcc $cq $itu $pattern $length\n";
+    }
+
+  } else {
+    print "unexpected input: $_\n";
+  }
+}
+close(CTYDAT);
+
+# sort descending
+@records = sort { (split /,/,$b)[0] <=> (split /,/,$a)[0] } @records;
+
+foreach my $rec (@records) {
+  #print "$prefix\n";
+  my ($length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz) = split /,/,$rec;
+  
+  if ($term =~ m/$pattern/) {
+    #print "FOUND: $pattern\n";
+    #print "$rec\n";
+    
+    $match = $term;
+    $match =~ s/$pattern/$bold$&$unbold/;
+
+    print "$match: $bold$name$unbold: $cont CQ:$cq ITU:$itu\n";
+    exit 0;
+  }
+}
+
+print "$term: no match\n";
+exit $exitnonzeroonerror;
+
