@@ -32,9 +32,9 @@
 # policies, either expressed or implied, of Chris Ruvolo.
 # ----------------
 
-# A QSO is considered "should be confirmed" if it is in your log, and the
-# remote station has a known LoTW upload date that is more recent than your
-# log, and if there is no QSL record in the LoTW report.
+# A QSO in your log is considered "should be confirmed" if the remote station
+# has a known LoTW upload date that is more recent than your log, and if there
+# is no QSL record in the LoTW report.
 #
 # Retreive your LoTW report from here:
 # 	https://lotw.arrl.org/lotwuser/qsos?qsoscmd=adif 
