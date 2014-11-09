@@ -133,3 +133,39 @@ missing: SV2DFK qso: 20140425   last upload: 20140630
 missing: ZS6WN  qso: 20140425   last upload: 20140731
 ```
 
+##dxcc
+
+Get information about the DXCC entity of a callsign or prefix.  Uses
+``cty.dat`` file for DXCC information, which is the same format used by tools
+like fldigi and xlog.  Retrieve the file from
+[country-files.com](http://www.country-files.com/).  I prefer the [Big
+CTY](http://www.country-files.com/big-cty/) version, which can be downloaded
+[here](http://www.country-files.com/category/big-cty/).
+
+###cty.dat placement
+
+The default location to look for cty.dat is ``$HOME/.cty.dat`` (a hidden
+dotfile).  This can be made a symlink to your fldigi or xlog directory, or
+another similar location.
+
+###Example use
+
+```
+$ dxcc KC4AAA
+KC4AAA: Antarctica: SA CQ:39 ITU:74
+$ dxcc W1AW
+W1AW: United States: NA CQ:5 ITU:8
+$ dxcc UA9YY
+UA9YY: Asiatic Russia: AS CQ:18 ITU:31
+$ dxcc UA9XX
+UA9XX: European Russia: EU CQ:17 ITU:20
+```
+
+###Possible future enhancements
+
+* provide Clublog most wanted number per [Clublog most wanted
+  API](https://clublog.freshdesk.com/support/articles/76225-most-wanted-list-json).
+* provide range to DXCC based on user latitude/longitude
+* provide local time at the DXCC location
+* provide sunrise/sunset at the DXCC location
+
