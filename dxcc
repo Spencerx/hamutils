@@ -148,7 +148,7 @@ while (<CTYDAT>) {
 }
 close(CTYDAT);
 
-# sort descending
+# sort descending by length of matching prefix/callsign
 @records = sort { (split /,/,$b)[0] <=> (split /,/,$a)[0] } @records;
 
 foreach my $rec (@records) {
@@ -162,7 +162,7 @@ foreach my $rec (@records) {
     $match = $term;
     $match =~ s/$pattern/$bold$&$unbold/;
 
-    print "$match: $bold$name$unbold: $cont CQ:$cq ITU:$itu\n";
+    print "$match: $bold$name$unbold ($dxcc): $cont CQ:$cq ITU:$itu\n";
     exit 0;
   }
 }
