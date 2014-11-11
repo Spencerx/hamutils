@@ -96,16 +96,9 @@ there is no QSL record in the LoTW report.
 
 ###LoTW report
 
-Retreive your LoTW report from here:
-https://lotw.arrl.org/lotwuser/qsos?qsoscmd=adif 
-
-Input the following parameters:
-- Show QSLs received since: *input a date corresponding to the earliest log
-you wish to check*
-- Include QSL detail: optional.  If selected, LoTW include DXCC, grid and
-zone information.  Does not change output.
-- Your Call Sign: *select callsign which corresponds to your logs you wish to
-check, or "Any"*
+Retreive your LoTW report from here, after editing ``YOURCALL`` and
+``YOURPASS`` to match your account:
+https://lotw.arrl.org/lotwuser/lotwreport.adi?login=YOURCALL&password=YOURPASS&qso_query=1&qso_qsl=yes&qso_qsldetail=yes&qso_startdate=1950-01-01
 
 The file downloaded will be "lotwreport.adi".  Use this as the first
 parameter to lotwreportcheck.
