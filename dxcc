@@ -162,7 +162,9 @@ foreach my $rec (@records) {
     $match = $term;
     $match =~ s/$pattern/$bold$&$unbold/;
 
-    print "$match: $bold$name$unbold ($dxcc): $cont CQ:$cq ITU:$itu\n";
+    print "$match: $bold$name$unbold";
+    print " ($dxcc)" unless $term eq $dxcc;
+    print ": $cont CQ:$cq ITU:$itu\n";
     exit 0;
   }
 }
