@@ -75,6 +75,8 @@ if ($highlight eq "vt100") {
   $unbold = "\002";
 }
 
+my %dxccmap;
+
 open(CTYDAT, "<", $ctydat) or die "unable to find cty.dat file: $ctydat ";
 while (<CTYDAT>) {
   chomp;
@@ -138,6 +140,7 @@ while (<CTYDAT>) {
       $lon = $lastentity[5];
       $tz = -1 * $lastentity[6];  # sign is reversed
 
+      $dxccmap{uc $dxcc} = join(',', $length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz);
       push @records, join(',', $length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz);
       #print "$prefix: $dxcc $cq $itu $pattern $length\n";
     }
@@ -148,8 +151,50 @@ while (<CTYDAT>) {
 }
 close(CTYDAT);
 
-# sort descending by length of matching prefix/callsign
+# Sort descending by length of matching prefix/callsign.
+# So we try by the most specific match first.
 @records = sort { (split /,/,$b)[0] <=> (split /,/,$a)[0] } @records;
+
+# load mostwanted summary from $HOME/.mostwanted.txt, wich can be populated by
+# the mostwanted-scrape.sh script.
+my $mostwantedfile=$ENV{'HOME'} . "/.mostwanted.txt";
+my %mostwantedByPrefix;
+my %mostwantedByName;
+open(MW, "<", $mostwantedfile) or goto SKIPMW;
+while (<MW>) {
+  chomp;
+  if (/^\d/) {
+    my ($rank, $prefix, $name) = split /,/;
+    #print "$prefix => $rank\n";
+    $mostwantedByPrefix{$prefix} = $rank;
+    $mostwantedByName{$name} = $rank;
+  }
+}
+close(MW);
+SKIPMW:
+
+# for debug
+#foreach my $rec (@records) {
+#  #print "$prefix\n";
+#  my ($length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz) = split /,/,$rec;
+#
+#  my $mw = $mostwantedByPrefix{uc($dxcc)} || $mostwantedByName{uc($name)};
+#  if (!defined($mw)) {
+#    #print "missing MW: $name: $dxcc\n" unless $name =~ /not DXCC/;
+#  }
+#}
+
+if (defined $dxccmap{$term}) {
+  my ($length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz) = split /,/,$dxccmap{$term};
+
+  print "$bold$term$unbold: $bold$name$unbold";
+  print ": $cont CQ:$cq ITU:$itu";
+  my $mw = $mostwantedByPrefix{uc($dxcc)} || $mostwantedByName{uc($name)};
+  print " MW:" . $mw unless (!defined $mw);
+  print "\n";
+  exit 0;
+}
+
 
 foreach my $rec (@records) {
   #print "$prefix\n";
@@ -164,9 +209,13 @@ foreach my $rec (@records) {
 
     print "$match: $bold$name$unbold";
     print " ($dxcc)" unless $term eq $dxcc;
-    print ": $cont CQ:$cq ITU:$itu\n";
+    print ": $cont CQ:$cq ITU:$itu";
+    my $mw = $mostwantedByPrefix{uc($dxcc)} || $mostwantedByName{uc($name)};
+    print " MW:" . $mw unless (!defined $mw);
+    print "\n";
     exit 0;
   }
+
 }
 
 print "$term: no match\n";
