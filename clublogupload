@@ -1,0 +1,105 @@
+#!/bin/sh
+# clublog upload script.  2-clause BSD license.  requires curl.
+#
+# Copyright 2014 Chris Ruvolo (KC2SYK). All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# 	this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# 	this list of conditions and the following disclaimer in the
+# 	documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY CHRIS RUVOLO ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+# EVENT SHALL CHRIS RUVOLO OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# The views and conclusions contained in the software and documentation are
+# those of the authors and should not be interpreted as representing official
+# policies, either expressed or implied, of Chris Ruvolo.
+
+# in order to upload adif logs, you need to obtain an API key.  Please contact
+# Michael Wells, michael@g7vjr.org to do so.  Once you have an API key, put
+# these four lines in $HOME/.clubloglogin:
+
+# apikey="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# login_email="youremail@example.com"
+# login_callsign="YOURCALL"
+# login_password="yourpass"
+
+# HTTP error code 403 is returned if any of the login values are incorrect.  If
+# the apikey is incorrect it will look like it succeeds and append [TEST MODE]
+# to the output.
+
+URL="https://secure.clublog.org/putlogs.php"
+#URL="http://www.clublog.org/putlogs.php"
+
+# note: curl here is set to use http/1.0 instead of 1.1 because the clublog
+# server doesn't handle the Expect: header.
+CURL="curl -i -0 -s -S"
+#CURL="curl -v -i -0"
+
+LOGINFILE="$HOME/.clubloglogin"
+if [ -r "$LOGINFILE" ]; then
+  chmod 0600 "$LOGINFILE"
+  . "$LOGINFILE"
+else
+  echo "unable to read $LOGINFILE"
+  exit 1
+fi
+
+FILE="$1"
+
+if [ ! -r "$FILE" ]; then
+  echo "unable to read $FILE"
+  exit 1
+fi
+
+TMP=`mktemp`
+
+$CURL \
+  --form email=$login_email \
+  --form password=$login_password \
+  --form callsign=$login_callsign \
+  --form clear=0 \
+  --form file=@$FILE \
+  --form api=$apikey \
+  $URL \
+  > $TMP
+
+#cat $TMP
+#echo $TMP
+
+HTTPCODE=`grep -h ^HTTP $TMP | tail -1 | awk '{print $2}'`
+
+if [ "$HTTPCODE" -ne "200" ]; then 
+  echo "upload unsuccessful.  http code: $HTTPCODE"
+  if [ `grep -c '<html>' $TMP` -ne 0 ]; then
+    # if there is a html document, look for lines regarding this error, strip
+    # tags and output them.
+    grep "$HTTPCODE" $TMP | \
+      grep -v ^HTTP | \
+      sed -e 's/^\s*//; s/<[^>]\+>//g;' | \
+      uniq
+    exit 1
+  else
+    # output the http payload
+    sed -n '/^\s*$/,$ p' < $TMP| grep -v '^\s*$'
+    exit 1
+  fi
+fi
+
+# output the http payload
+sed -n '/^\s*$/,$ p' < $TMP| grep -v '^\s*$'
+
+rm $TMP
