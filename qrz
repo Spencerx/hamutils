@@ -189,9 +189,9 @@ if ($needlogin) {
   doLogin();
 }
 
-our ($retcall, $country, $name, $class, $mail, $grid, $lat, $lon, $geosrc,
+our ($retcall, $country, $name, $sk, $class, $mail, $grid, $lat, $lon, $geosrc,
 			$born, @prevcalls, $email, $codes, $website, $iota, $lotw, $eqsl,
-			$mailqsl, $expiration, @othercalls);
+			$mailqsl, $qsl, $expiration, @othercalls);
 
 getAndParseData();
 
@@ -228,6 +228,9 @@ print "$bold$retcall$unbold: $country: $name";
 if (defined($expiration) && ($expiration lt strftime("%Y-%m-%d", gmtime))) {
   print " ${bold}\[EXPIRED\]${unbold}";
 }
+if (defined($sk) && $sk ne 0) {
+  print " ${bold}\[SK\]${unbold}";
+}
 if (defined($email)) {
   print " -- $email";
 }
@@ -252,16 +255,20 @@ if (@othercalls) {
 if (defined($website)) {
   print " -- $website";
 }
-if (defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
-  my $qsltext = "";
+if (defined($qsl) or defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
+  my $qslflags = "";
+  my $qsltext = "$qsl";
   if (defined($lotw) and $lotw =~ /Yes/i) {
-    $qsltext .= "L";
+    $qslflags .= "L";
   }
   if (defined($eqsl) and $eqsl =~ /Yes/i) {
-    $qsltext .= "E";
+    $qslflags .= "E";
   }
   if (defined($mailqsl) and $mailqsl =~ /Yes/i) {
-    $qsltext .= "M";
+    $qslflags .= "M";
+  }
+  if (length($qslflags) gt 0) {
+    $qsltext .= " [$qslflags]";
   }
   if (length($qsltext) gt 0) {
     print " -- QSL: $qsltext";
@@ -503,6 +510,11 @@ sub getAndParseData {
       getAndParseData();
       return;
     }
+    if (/<p style="color:black;font-weight:bold;">SILENT KEY/ or 
+	/<span style="color:white">SILENT KEY/) {
+
+      $sk = 1;
+    }
     if (defined($retcall) and length($retcall) > 0 and $calldata and !defined($name) and /^<p class="m0">([^<]+)<span[^>]*>[^<]*<\/span><br *\/>(.*)$/) {
       $name = $1;
       $mail = $2;
@@ -603,6 +615,10 @@ sub getAndParseData {
       }
       if ($key =~ /Born/) {
 	$born = $val;
+	next;
+      }
+      if ($key =~ /QSL Info/) {
+	$qsl = $val;
 	next;
       }
       if ($key =~ /Previous/) {
