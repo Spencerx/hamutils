@@ -258,7 +258,7 @@ if (defined($website)) {
 if (defined($qsl) or defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
   my $qslflags = "";
   my $qsltext = "";
-  $qsltext .= $qsl unless !defined($qsl);
+  $qsltext = $qsl unless !defined($qsl);
   if (defined($lotw) and $lotw =~ /Yes/i) {
     $qslflags .= "L";
   }
@@ -268,8 +268,11 @@ if (defined($qsl) or defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
   if (defined($mailqsl) and $mailqsl =~ /Yes/i) {
     $qslflags .= "M";
   }
+  if (length($qsltext) gt 0) {
+    $qsltext .= " ";
+  }
   if (length($qslflags) gt 0) {
-    $qsltext .= " [$qslflags]";
+    $qsltext .= "[$qslflags]";
   }
   if (length($qsltext) gt 0) {
     print " -- QSL: $qsltext";
