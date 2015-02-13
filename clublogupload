@@ -65,41 +65,41 @@ if [ ! -r "$FILE" ]; then
   exit 1
 fi
 
-TMP=`mktemp`
+TMP=$(mktemp)
 
 $CURL \
-  --form email=$login_email \
-  --form password=$login_password \
-  --form callsign=$login_callsign \
+  --form "email=$login_email" \
+  --form "password=$login_password" \
+  --form "callsign=$login_callsign" \
   --form clear=0 \
-  --form file=@$FILE \
-  --form api=$apikey \
+  --form "file=@$FILE" \
+  --form "api=$apikey" \
   $URL \
-  > $TMP
+  > "$TMP"
 
 #cat $TMP
 #echo $TMP
 
-HTTPCODE=`grep -h ^HTTP $TMP | tail -1 | awk '{print $2}'`
+HTTPCODE=$(grep -h ^HTTP "$TMP" | tail -1 | awk '{print $2}')
 
 if [ "$HTTPCODE" -ne "200" ]; then 
   echo "upload unsuccessful.  http code: $HTTPCODE"
-  if [ `grep -c '<html>' $TMP` -ne 0 ]; then
+  if [ "$(grep -c '<html>' "$TMP")" -ne 0 ]; then
     # if there is a html document, look for lines regarding this error, strip
     # tags and output them.
-    grep "$HTTPCODE" $TMP | \
+    grep "$HTTPCODE" "$TMP" | \
       grep -v ^HTTP | \
       sed -e 's/^\s*//; s/<[^>]\+>//g;' | \
       uniq
     exit 1
   else
     # output the http payload
-    sed -n '/^\s*$/,$ p' < $TMP| grep -v '^\s*$'
+    sed -n '/^\s*$/,$ p' < "$TMP"| grep -v '^\s*$'
     exit 1
   fi
 fi
 
 # output the http payload
-sed -n '/^\s*$/,$ p' < $TMP| grep -v '^\s*$'
+sed -n '/^\s*$/,$ p' < "$TMP"| grep -v '^\s*$'
 
-rm $TMP
+rm "$TMP"
