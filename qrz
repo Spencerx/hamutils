@@ -191,7 +191,7 @@ if ($needlogin) {
 
 our ($retcall, $country, $name, $sk, $class, $mail, $grid, $lat, $lon, $geosrc,
 			$born, @prevcalls, $email, $codes, $website, $iota, $lotw, $eqsl,
-			$mailqsl, $qsl, $expiration, @othercalls);
+			$mailqsl, $qsl, $expiration, @othercalls, $trustee);
 
 getAndParseData();
 
@@ -251,6 +251,9 @@ if (@prevcalls) {
 }
 if (@othercalls) {
   print " -- aliases: " . join(", ", @othercalls);
+}
+if (defined($trustee)) {
+  print " -- trustee: $trustee";
 }
 if (defined($website)) {
   print " -- $website";
@@ -616,6 +619,13 @@ sub getAndParseData {
 	  $codes = $1;
 	}
 	next;
+      }
+      if ($key =~ /Trustee/) {
+	$trustee = $val;
+	if ( /http:\/\/www.qrz.com\/db\/([A-Z0-9]+)/ ) {
+	  $trustee = $1;
+	}
+	#print "trustee: $trustee\n";
       }
       if ($key =~ /Born/) {
 	$born = $val;
