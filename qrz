@@ -284,10 +284,12 @@ if (defined($qsl) or defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
 print "\n";
 print "$mail\n";
 
+$geosrc = "?" unless defined($geosrc);
+
 if (defined($lat) and not defined($grid)) {
   $grid = coordToGrid($lat, $lon);
 
-  if (defined($geosrc) and $geosrc eq "dxcc") {
+  if ($geosrc eq "dxcc") {
     # limited accuracy
     $grid = substr($grid, 0, 2);
   }
