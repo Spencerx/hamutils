@@ -191,7 +191,7 @@ if ($needlogin) {
 
 our ($retcall, $country, $name, $sk, $class, $mail, $grid, $lat, $lon, $geosrc,
 			$born, @prevcalls, $email, $codes, $website, $iota, $lotw, $eqsl,
-			$mailqsl, $qsl, $expiration, @othercalls, $trustee);
+			$mailqsl, $qsl, $expiration, @othercalls, $trustee, $incomplete);
 
 getAndParseData();
 
@@ -230,6 +230,9 @@ if (defined($expiration) && ($expiration lt strftime("%Y-%m-%d", gmtime))) {
 }
 if (defined($sk) && $sk ne 0) {
   print " ${bold}\[SK\]${unbold}";
+}
+if (defined($incomplete) && $incomplete ne 0) {
+  print " ${bold}\[INCOMPLETE\]${unbold}";
 }
 if (defined($email)) {
   print " -- $email";
@@ -494,6 +497,10 @@ sub getAndParseData {
     if (/No result data was available for:/) {
       print uc($call), " not found\n";
       exit $exitnonzeroonerror;
+    }
+
+    if (/This call sign record has incomplete details/) {
+      $incomplete = 1;
     }
 
     if (/begin calldata/) {
