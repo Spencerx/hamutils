@@ -316,11 +316,13 @@ if (defined($lat)) {
     my @origin = NESW($mylon, $mylat);
     my @foreign = NESW($lon, $lat);
     my ($dist, $bearing);
+    # disable "experimental" warning on smart match operator use
+    no if $] >= 5.018, warnings => "experimental::smartmatch";
     if (@origin ~~ @foreign) {	  # smart match operator - equality comparison
       $dist = 0;
       $bearing = 0;
     } else {
-      $dist = great_circle_distance(@origin, @foreign, 6378.1);
+      $dist = great_circle_distance(@origin, @foreign, 6378.1); # earth radius
       $bearing = rad2deg(great_circle_bearing(@origin, @foreign));
     }
     my $localgrid = coordToGrid($mylat, $mylon);
