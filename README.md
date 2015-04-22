@@ -141,23 +141,34 @@ The default location to look for cty.dat is ``$HOME/.cty.dat`` (a hidden
 dotfile).  This can be made a symlink to your fldigi or xlog directory, or
 another similar location.
 
+###Clublog most-wanted rank
+
+Clublog most-wanted rank can be scraped using the ``mostwanted-scrape.sh``
+script.  It will create a file with ranking information in
+``$HOME/.mostwanted.txt``.  The source of the ranking is the list here:
+https://secure.clublog.org/mostwanted.php
+
 ###Example use
 
 ```
 $ dxcc KC4AAA
-KC4AAA: Antarctica: SA CQ:39 ITU:74
+KC4AAA: Antarctica (CE9): SA CQ:39 ITU:74 MW:225
 $ dxcc W1AW
-W1AW: United States: NA CQ:5 ITU:8
+W1AW: United States (K): NA CQ:5 ITU:8 MW:340
 $ dxcc UA9YY
-UA9YY: Asiatic Russia: AS CQ:18 ITU:31
+UA9YY: Asiatic Russia (UA9): AS CQ:18 ITU:31 MW:325
 $ dxcc UA9XX
-UA9XX: European Russia: EU CQ:17 ITU:20
+UA9XX: European Russia (UA): EU CQ:17 ITU:20 MW:337
+$ dxcc VP8
+VP8: Falkland Islands: SA CQ:13 ITU:16 MW:186
+$ dxcc wallis
+FW: Wallis & Futuna Islands: OC CQ:32 ITU:62 MW:71
+$ dxcc willis
+VK9W: Willis Island: OC CQ:30 ITU:55 MW:34
 ```
 
 ###Possible future enhancements
 
-* provide Clublog most wanted number per [Clublog most wanted
-  API](https://clublog.freshdesk.com/support/articles/76225-most-wanted-list-json).
 * provide range to DXCC based on user latitude/longitude
 * provide local time at the DXCC location
 * provide sunrise/sunset at the DXCC location
