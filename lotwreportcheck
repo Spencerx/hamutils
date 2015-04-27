@@ -158,6 +158,9 @@ while (<LOTWDATES>) {
 	  @qsldates = split /,/, $qsls{$call};
 	}
 
+	# disable "experimental" warning on smart match operator use
+	no if $] >= 5.018, warnings => "experimental::smartmatch";
+
 	#print "$call\tqso: $qsodate\tqsls: " .
 	#	(defined $qsls{$call} ? "@qsldates" : "") . "\n";
 
