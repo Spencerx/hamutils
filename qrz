@@ -321,8 +321,10 @@ if (defined($lat)) {
     my @origin = NESW($mylon, $mylat);
     my @foreign = NESW($lon, $lat);
     my ($dist, $bearing);
+
     # disable "experimental" warning on smart match operator use
     no if $] >= 5.018, warnings => "experimental::smartmatch";
+
     if (@origin ~~ @foreign) {	  # smart match operator - equality comparison
       $dist = 0;
       $bearing = 0;
