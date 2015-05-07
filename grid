@@ -31,6 +31,7 @@
 
 use strict;
 use utf8;
+use feature 'unicode_strings';
 use Math::Trig;
 use Math::Trig 'great_circle_distance';
 use Math::Trig 'great_circle_bearing';
@@ -247,6 +248,7 @@ sub qthToCoords {
   my $url = "http://maps.googleapis.com/maps/api/geocode/xml?address=$place&sensor=false";
 
   open (WGET, '-|', "wget -q -O - '$url'");
+  binmode(WGET, ":utf8");
   GET: while (<WGET>) {
     #print;
     chomp;
@@ -283,6 +285,7 @@ sub geolocate {
   my %results;
 
   open (WGET, '-|', "wget -q -O - '$url'");
+  binmode(WGET, ":utf8");
   while (<WGET>) {
     #print;
     chomp;
