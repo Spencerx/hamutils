@@ -63,6 +63,8 @@ if ($#ARGV < 0 || length($ARGV[0]) == 0) {
 }
 
 my $term = uc $ARGV[0];
+$term =~ s/^\s*//;
+$term =~ s/\s*$//;
 
 my $bold = "";
 my $unbold = "";
