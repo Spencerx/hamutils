@@ -64,25 +64,33 @@ truncated. 313 matches found. see http://www.qrz.com/lookup/?query=W%2AAW&mode=c
 ##grid
 
 grid will map grid squares to place names and place names to grid squares.  It
-can use the $mylat and $mylon values in the $HOME/.qrzlogin file as well.
+can use the $mylat and $mylon values in the $HOME/.qrzlogin file as well to
+provide an origin for distance calculations.  Also, an origin may be specified
+on the command line using the 'from' or 'de' keywords.
 
 ###example use
 
 ```
 $ grid tokyo, japan
-PM95uq: 35.6894875, 139.6917064: Shinjuku, Tokyo, Japan -- 10916.4 km, 331° from FM18lv
+PM95ur: 35.7090259, 139.7319925: Bunkyo, Tokyo, Japan -- 10911.8 km, 331° from FM18lv
 
 $ grid  東京日本
-PM95uq: 35.6894875, 139.6917064: Shinjuku, Tokyo, Japan -- 10916.4 km, 331° from FM18lv
+PM95vq: 35.6813820, 139.7660840: Chiyoda, Tokyo, Japan -- 10913.1 km, 331° from FM18lv
 
 $ grid JO22wa
-JO22wa: 52.0208, 5.8750: Arnhem, The Netherlands -- 6273.3 km, 47° from FM18lv
+JO22wa: 52.0208, 5.8750: Arnhem, Netherlands -- 6273.8 km, 47° from FM18lv
 
 $ grid 1600 Pennsylvania Ave NW, Washington, DC 20500
-FM18lv: 38.8978378, -77.0365123: Washington, DC, USA -- 0.0 km, 353° from FM18lv
+FM18lv: 38.8987352, -77.0350902: Northwest Washington, Washington, DC, USA -- 0.0 km, 0° from FM18lv
 
 $ grid 52.000,0.000
-JO02aa: 52.000, 0.000: North Hertfordshire District, Hertfordshire, UK -- 5896.0 km, 49° from FM18lv
+JO02aa: 52.000, 0.000: North Hertfordshire District, Hertfordshire, UK -- 5895.8 km, 49° from FM18lv
+
+$ grid newark, nj from bombay, india
+FN20vr: 40.7356570, -74.1723667: Central Business District, Newark, NJ, USA -- 12557.7 km, 333° from MK69kb
+
+$ grid IO92vw de FN20rs
+IO92vw: 52.9375, -0.2083: Boston, Lincolnshire, UK -- 5552.8 km, 49° from FN20rs
 ```
 
 ##lotwreportcheck

@@ -48,6 +48,7 @@ our $highlight="vt100";
 
 our $mylat = undef;
 our $mylon = undef;
+my $de = undef;
 
 my $loginfile = $ENV{'HOME'} . "/.qrzlogin";
 
@@ -59,9 +60,9 @@ if ($#ARGV < 0 || length($ARGV[0]) == 0) {
   my $username = $ENV{'USER'} || $ENV{'USERNAME'} || getpwuid($<);
 
   if ($username eq 'eggdrop') {
-    print "usage: !grid <grid>|<lat>,<lon>|<qth>\n";
+    print "usage: !grid <grid>|<lat>,<lon>|<qth> [de <grid>|<lat>,<lon>|<qth>]\n";
   } else {
-    print "usage: $0 <grid>|<lat>,<lon>|<qth>\n";
+    print "usage: $0 <grid>|<lat>,<lon>|<qth> [de <grid>|<lat>,<lon>|<qth>]\n";
   }
   exit $exitnonzeroonerror;
 }
@@ -69,15 +70,29 @@ if ($#ARGV < 0 || length($ARGV[0]) == 0) {
 my $query = undef;
 my $type = undef;
 
+# eggdrop doesn't split args on spaces
+@ARGV=split(' ', join(' ',@ARGV));
+
 my $i = 0;
+#while ($i <= $#ARGV) {
+#  print "$i: $ARGV[$i++]\n";
+#}
+#$i = 0;
+
 while ($i <= $#ARGV) {
-  if ($ARGV[$i] =~ /--geo/) {
-    my $latlon = $ARGV[$i+1];
-    if ($latlon =~ /^-?\d+\.\d+,-?\d+\.\d+$/) {
-      ($mylat, $mylon) = split(',', $latlon);
-      #print "lat: $mylat\tlon: $mylon\n";
-    }
-    $i += 2;
+  if (!defined($de) and $ARGV[$i] =~ /^(--geo|de|from)$/i) {
+    $i++;
+    $de = $ARGV[$i];
+    $i++;
+    next;
+  }
+  if (defined($de) and $ARGV[$i] =~ /^--geo$/) {
+    # in case we have "de XXX --geo abc,xyz"
+    last;
+  }
+  if (defined($de)) {
+    $de = $de . " " . $ARGV[$i];
+    $i++;
     next;
   }
   if (defined($query)) {
@@ -88,20 +103,12 @@ while ($i <= $#ARGV) {
   $i++;
 }
 
-if ($query =~ /^(grid:)? ?([A-R]{2}[0-9]{2}([a-x]{2})?)/i) {
-  $query = $2;
-  $type = "grid";
-} elsif ($query =~ /^(geo:)? ?([-+]?\d+(.\d+)?,[-+]?\d+(.\d+)?)/i) {
-  $query = $2;
-  $type = "geo";
-} else {
-  $type = "qth";
-  #print "unknown input.\n";
-  #exit $exitnonzeroonerror;
+if (defined($de)) {
+  $de = argToCoords($de);
+  ($mylat, $mylon) = split(',', $de);
 }
 
-#print "query: $query\ntype: $type\n";
-
+my ($lat, $lon) = split(',', argToCoords($query));
 
 my $bold = "";
 my $unbold = "";
@@ -114,29 +121,7 @@ if ($highlight eq "vt100") {
   $unbold = "\002";
 }
 
-my $lat = undef;
-my $lon = undef;
-my $grid = undef;
-
-if ($type eq "grid") {
-  $grid = $query;
-} elsif ($type eq "geo") {
-  ($lat, $lon) = split(',', $query);
-} elsif ($type eq "qth") {
-  my $ret = qthToCoords($query);
-  if (!defined($ret)) {
-    print "'$query' not found.\n";
-    exit $exitnonzeroonerror;
-  }
-  ($lat, $lon) = split(',', $ret);
-}
-
-if (defined($grid)) {
-  ($lat, $lon) = split(',', gridToCoord(uc($grid)));
-} elsif (defined ($lat)) {
-  $grid = coordToGrid($lat, $lon);
-}
-
+my $grid = coordToGrid($lat, $lon);
 my $placename = geolocate($lat, $lon);
 
 print "$bold$grid$unbold: $lat, $lon";
@@ -338,6 +323,44 @@ sub geolocate {
   }
 
   return $addr;
+}
+
+sub argToCoords {
+  my $arg = shift;
+  my $type;
+
+  if ($arg =~ /^(grid:)? ?([A-R]{2}[0-9]{2}([a-x]{2})?)/i) {
+    $arg = $2;
+    $type = "grid";
+  } elsif ($arg =~ /^(geo:)? ?([-+]?\d+(.\d+)?,\s?[-+]?\d+(.\d+)?)/i) {
+    $arg = $2;
+    $type = "geo";
+  } else {
+    $type = "qth";
+  }
+
+  my $lat = undef;
+  my $lon = undef;
+  my $grid = undef;
+
+  if ($type eq "grid") {
+    $grid = $arg;
+  } elsif ($type eq "geo") {
+    ($lat, $lon) = split(',', $arg);
+  } elsif ($type eq "qth") {
+    my $ret = qthToCoords($arg);
+    if (!defined($ret)) {
+      print "'$arg' not found.\n";
+      exit $exitnonzeroonerror;
+    }
+    ($lat, $lon) = split(',', $ret);
+  }
+
+  if (defined($grid)) {
+    ($lat, $lon) = split(',', gridToCoord(uc($grid)));
+  } 
+
+  return join(',', $lat, $lon);
 }
 
 # vim: set ts=8 sw=2 sts=2
