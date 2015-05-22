@@ -329,6 +329,12 @@ sub geolocate {
     $addr = $results{"administrative_area_level_1"};
   } elsif (defined($results{"country"})) {
     $addr = $results{"country"};
+  } elsif (defined($results{"sublocality"})) {
+    $addr = $results{"sublocality"};
+  } elsif (defined($results{"sublocality_level_3"})) {
+    $addr = $results{"sublocality_level_3"};
+  } elsif (defined($results{"sublocality_level_4"})) {
+    $addr = $results{"sublocality_level_4"};
   }
 
   return $addr;
