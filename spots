@@ -1,0 +1,417 @@
+#!/usr/bin/perl -w
+
+# ham spots lookup, using pskreporter, reverse beacon network and dxwatch.
+# 2-clause BSD license.
+
+# Copyright 2015 Chris Ruvolo (KC2SYK). All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# 	this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# 	this list of conditions and the following disclaimer in the
+# 	documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY CHRIS RUVOLO ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+# EVENT SHALL CHRIS RUVOLO OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# The views and conclusions contained in the software and documentation are
+# those of the authors and should not be interpreted as representing official
+# policies, either expressed or implied, of Chris Ruvolo.
+
+
+use strict;
+use POSIX;
+use Text::CSV;
+use DateTime::Format::Strptime;
+use Switch;
+use v5.10;
+
+# configuration
+my $exitnonzeroonerror = 0;
+my $timestampfile = $ENV{'HOME'}.'/.spottimestamps';
+
+my $defaultSpots = 10;
+my $defaultSpotsForEggdrop = 3;
+
+# end config
+
+# TODO: unicode support?
+
+my $username = $ENV{'USER'} || $ENV{'USERNAME'} || getpwuid($<);
+if ($#ARGV < 0 || length($ARGV[0]) == 0) {
+  if ($username eq 'eggdrop') {
+    print "usage: !spots [--dxw] [--rbn] [--psk] <callsign> [limit]\n";
+  } else {
+    print "usage: $0 [--dxw] [--rbn] [--psk] <callsign> [limit]\n";
+  }
+  exit $exitnonzeroonerror;
+}
+
+my $callsign = undef;
+my $i = 0;
+my $monitor = 0;
+
+my $limit;
+if ($username eq 'eggdrop') {
+  $limit = $defaultSpotsForEggdrop;
+} else {
+  $limit = $defaultSpots;
+}
+
+my $psk = 0;
+my $dxw = 0;
+my $rbn = 0;
+
+# when calling from eggdrop, parameters may be packed into first parameter.
+if ($#ARGV == 0 && $ARGV[0] =~ m/ /) {
+  @ARGV = split / /, $ARGV[0];
+}
+
+while ($i <= $#ARGV) {
+  if ($ARGV[$i] =~ /--mon/) {
+    $monitor = 1;
+    $i++; next;
+  }
+  if ($ARGV[$i] =~ /--dxw/) {
+    $dxw = 1;
+    $i++; next;
+  }
+  if ($ARGV[$i] =~ /--rbn/) {
+    $rbn = 1;
+    $i++; next;
+  }
+  if ($ARGV[$i] =~ /--psk/) {
+    $psk = 1;
+    $i++; next;
+  }
+  if (!defined($callsign)) {
+    $callsign = uc $ARGV[$i];
+    $i++; next;
+  }
+  if (defined($callsign) && $ARGV[$i] =~ /^\d+$/) {
+    $limit = $ARGV[$i];
+  }
+  $i++;
+}
+
+if ($dxw == 0 && $rbn == 0 && $psk == 0) {
+  $dxw = 1;
+  $rbn = 1;
+  $psk = 1;
+}
+
+$callsign = "" unless defined $callsign;
+
+if (!($callsign =~ m/^([A-Z0-9]+[0-9]?\/)?[A-Z0-9]+[0-9][A-Z]+(\/[A-Z0-9]+)?$/)) {
+  print "invalid callsign: $callsign\n";
+  exit $exitnonzeroonerror;
+}
+
+my $lasttimestamp = 0;
+my %lasttimes;
+
+if (-e $timestampfile) {
+  open (TIMESTAMPS, "<", $timestampfile);
+  while (<TIMESTAMPS>) {
+    chomp;
+    my @data = split /,/;
+    $lasttimes{$data[0]} = $data[1];
+    if ($data[0] eq $callsign) {
+      $lasttimestamp = $data[1];
+      #print "last from file: $lasttimestamp\n";
+    }
+  }
+  close TIMESTAMPS;
+}
+
+my $lastspot = 0;
+my @spots;
+
+doPSKreporter() unless $psk == 0;
+doDXWatch(0) unless $dxw == 0;	  # dx watch
+doDXWatch(1) unless $rbn == 0;	  # reverse beacon network
+
+my @sortedspots = sort { $b->{ts} <=> $a->{ts} } @spots;  # descending
+
+show(\@sortedspots);
+updatelast();
+
+exit 0;
+
+##############################################################
+
+sub doPSKreporter
+{
+
+  my $url ="http://retrieve.pskreporter.info/query?senderCallsign=$callsign&rronly=1&nolocator=1";
+
+  # This doesn't seem to work.
+  #
+  #if (defined($lastseqnum)) {
+  #  $url .= "&lastseqno=$lastseqnum"
+  #}
+
+  #print "url: $url\n";
+  # using IPv4 because I got greedy and got banned using ipv6.
+  open (WGET, '-|', "wget -4 -q -O - '$url'");
+  #open (WGET, '-|', "cat $callsign.xml");
+  while (<WGET>) {
+    chomp;
+    #if (/<lastSequenceNumber\s+value="(\d+)"/) {
+      #print "lastseqnum: $1\n";
+      #}
+    if (/<receptionReport\s/) {
+      s/"\s/"\n/g;
+      s/.*?(\w+)=/$1=/;
+      s/\/>//;
+      #print "$_\n";
+      my @data = split /\n/;
+      my %rec;
+      foreach my $attrs (@data) {
+	#print "$attrs\n";
+	my ($tag, $value) = split(/=/,$attrs);
+	#print "$tag = $value\n";
+	if (defined $value) {
+	  $value =~ s/"(.*)"/$1/;
+	  $rec{$tag}=$value;
+	}
+      }
+      if (defined($rec{sNR})) {
+	$rec{sNR} = $rec{sNR} . " dB";
+      } else {
+	$rec{sNR} = "";
+      }
+      
+      if (%rec) {
+	$rec{frequency} = 0 unless defined $rec{frequency};
+	$rec{mode} = "?" unless defined $rec{mode};
+	$rec{flowStartSeconds} = 0 unless defined $rec{flowStartSeconds};
+
+	push (@spots, {ts => $rec{flowStartSeconds},
+		        src => "p",
+			de => $rec{receiverCallsign},
+			dx => $rec{senderCallsign},
+			f => floor($rec{frequency}/1000),
+			msg => $rec{mode} . " " . $rec{sNR}});
+#	printf "%-7s %-7s %5d %-28s %s\n",
+#		$rec{receiverCallsign},
+#		$rec{senderCallsign},
+#		floor($rec{frequency}/1000),
+#		$rec{mode} . " " . $rec{sNR},
+#		strftime("%H%Mz %d %b", gmtime($rec{flowStartSeconds}));
+
+  #      print "$rec{receiverCallsign}\t$rec{senderCallsign}\t" .
+  #	    floor($rec{frequency}/1000)."\t$rec{mode} $rec{sNR}\t" .
+  #	    strftime("%H:%Mz %b %d", gmtime($rec{flowStartSeconds})) . "\n";
+	$lastspot = $rec{flowStartSeconds} unless
+	      ($rec{flowStartSeconds} < $lastspot);
+      }
+    }
+  }
+  close WGET;
+}
+
+
+sub doDXWatch
+{
+  my $rb = shift;
+  if (!defined($rb)) {
+    $rb = 0;
+  }
+
+  my $url;
+  if ($rb == 0) {
+    $url = 'http://www.dxwatch.com/dxsd1/s.php?s=0&r=50&cdx=' . $callsign;
+  } else {
+    $url = 'http://www.reversebeacon.net/dxsd1/sk.php?s=0&r=15&cdx=' . $callsign;
+  }
+
+  my $modes_ref = {
+    1 => "cw",
+    2 => "phone",
+    10 => "psk31",
+    11 => "rtty",
+    12 => "bpsk",
+    13 => "gmsk",
+    14 => "fsk",
+    15 => "sstv",
+    16 => "mfsk",
+    17 => "qpsk",
+    21 => "jt65",
+    22 => "hell",
+    23 => "dominoex",
+    24 => "mt63",
+    25 => "rttym",
+    26 => "thor",
+    27 => "throb",
+    28 => "olivia",
+    29 => "contestia"};
+  my %modes = %$modes_ref;
+
+  my $csv = Text::CSV->new({ sep_char => ',' });
+  my $dtparser = DateTime::Format::Strptime->new(
+    #see strftime
+    pattern => '%H%Mz %d %b %Y',
+    time_zone => 'UTC',
+    on_error => 'undef');
+
+  my $maxdate = 0;
+  #open (WGET, '-|', "cat dxwatch-$callsign.json");
+  #open (WGET, '-|', "cat rb-N7XM.json");
+  #print "$url\n";
+  open (WGET, '-|', "wget -q -O - '$url'");
+  while (<WGET>) {
+    s/},"fname".*$//;
+    s/{"s":{//;
+    s/],"/]\n"/g;
+
+    my @data = split /\n/;
+    my %rec;
+    foreach my $line (@data) {
+      if (/This filter returned no spot/) {
+	last;
+      }
+      $line =~ /"(\d+)":\[(.*)\]/;
+      #say $line;
+      my $num = $1;
+      my $vals = $2;
+      #print "num: $num  --  vals: $vals\n";
+      if (!defined($vals)) {
+	next;
+      }
+
+      my ($de, $freq, $dx, $snr, $wpm, $datetime, $age, $x, $y, $cmt, $mode);
+      if ($rb eq 1) {
+	$vals =~ s/"//g;
+	$vals =~ s/\\\//\//g;
+	#say $vals;
+	($de, $freq, $dx, $snr, $wpm, $datetime, $age, $x, $y, $mode) = split /,/,$vals;
+	$cmt = "$snr dB, $wpm wpm";
+    	$cmt = $modes{$mode} . " " . $cmt unless !defined $mode;
+      } else {
+	$vals =~ s/\\\//\//g;
+	$vals =~ s/(\\)?\\'/'/g;
+	$vals =~ s/\\"/""/g;		# two quotes is an escaped quote
+	#say $vals;
+	$csv->parse($vals) or say "unable to parse csv: $vals";
+	($de, $freq, $dx, $cmt, $datetime, $age, $x, $y) = $csv->fields();
+	$cmt =~ s/&lt;/</g;
+	$cmt =~ s/&gt;/>/g;
+	$cmt =~ s/&amp;/&/g;
+      }
+
+      my ($ts, $dt);
+
+      if (defined $age && $age > 0) {
+	$ts = time() - $age;
+      } else {
+	$datetime =~ /.*\s(\d+)\s+(\w+)$/;
+	$dt = $dtparser->parse_datetime(
+	    $datetime . " " . getyearformonthday($2, $1));
+
+	$ts = $dt->epoch();
+      }
+
+      if (defined($ts)) {
+	#say "timestamp: $ts";
+	$lastspot = $ts unless ($ts < $lastspot);
+      }
+
+      push (@spots, {ts => $ts,
+		      src => (($rb == 1) ? "r" : "d"),
+		      de => $de,
+		      dx => $dx,
+		      f => $freq,
+		      msg => substr($cmt, 0, 28)}
+		    );
+
+      #printf "%-7s %-7s %5d %-28s %s\n", $de, $dx, $freq, substr($cmt, 0, 28), $datetime;
+    }
+  }
+  close WGET;
+}
+
+sub getyearformonthday
+{
+  my ($monthabbr, $day) = @_;
+  my $num;
+  switch ($monthabbr) {
+    case "Jan" { $num = 1 }
+    case "Feb" { $num = 2 }
+    case "Mar" { $num = 3 }
+    case "Apr" { $num = 4 }
+    case "May" { $num = 5 }
+    case "Jun" { $num = 6 }
+    case "Jul" { $num = 7 }
+    case "Aug" { $num = 8 }
+    case "Sep" { $num = 9 }
+    case "Oct" { $num = 10 }
+    case "Nov" { $num = 11 }
+    case "Dec" { $num = 12 }
+    else       { say "unknown month: $monthabbr" }
+  }
+  my $now = DateTime->now(time_zone => 'UTC');
+  my $currmonthnum = $now->month();
+  if ($num < $now->month() ||
+      ($num == $now->month() && $day <= $now->day())) {
+    return $now->year();
+  } else {
+    return $now->year() - 1;
+  }
+}
+
+sub show
+{
+  my ($array) = @_;
+  my $i = 0;
+  if ((scalar @$array) == 0 and $monitor == 0) {
+    say "no spots found for $callsign";
+  }
+  foreach my $spotref (@$array) {
+    my %spot = %$spotref;
+    if ($monitor == 1 and $spot{ts} <= $lasttimestamp) {
+      #print "skipping: ";
+      #printf "%-7s %-7s %5d %-28s %s %s\n", $spot{de}, $spot{dx}, $spot{f}, $spot{msg}, strftime("%H%Mz %d %b", gmtime($spot{ts})), $spot{src};
+      next;
+    }
+    #printf "debug: %d, %d: %s\n", $lasttimestamp, $spot{ts}, strftime("%H%Mz %d %b", gmtime($spot{ts}));
+    printf "%-7s %-7s %5d %-28s %s %s\n", $spot{de}, $spot{dx}, $spot{f}, $spot{msg}, strftime("%H%Mz %d %b", gmtime($spot{ts})), $spot{src};
+    if (++$i >= $limit) {
+      last;
+    }
+  }
+}
+
+sub updatelast
+{
+  #print "lastspot: $lastspot\n";
+  open (TIMESTAMPS, ">", $timestampfile);
+
+  foreach my $call (sort keys %lasttimes) {
+    if ($call ne $callsign) {
+      print TIMESTAMPS "$call,$lasttimes{$call}\n";
+    }
+  }
+
+  $lastspot = 0 unless defined $lastspot;
+  $lasttimes{$callsign} = 0 unless defined $lasttimes{$callsign};
+
+  $lastspot = ($lastspot < $lasttimes{$callsign}) ?
+			  $lasttimes{$callsign} : $lastspot;
+  print TIMESTAMPS "$callsign,$lastspot\n";
+  close TIMESTAMPS;
+}
+
+# vim: set ts=8 sw=2 sts=2
