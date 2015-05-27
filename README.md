@@ -2,7 +2,7 @@ hamutils
 ========
 
 Some ham radio utilities.  Can be run from the command line or for use by an
-IRC bot.
+IRC bot.  Licensed under 2-clause BSD license.
 
 ##qrz
 
