@@ -501,6 +501,11 @@ sub getAndParseData {
       exit $exitnonzeroonerror;
     }
 
+    if (/Service limit exceeded/) {
+      print "Service limit exceeded. Too many lookups.\n";
+      exit $exitnonzeroonerror;
+    }
+
     if (/This call sign record has incomplete details/) {
       $incomplete = 1;
     }
