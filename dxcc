@@ -214,6 +214,14 @@ if (length($term) >= 3) {
   }
 }
 
+# If there is a space in the term, it is a name and should have matched the
+# above. Error out.
+
+if ($term =~ m/ /) {
+  print "Name not found: $term\n";
+  exit $exitnonzeroonerror;
+}
+
 foreach my $rec (@records) {
   #print "$prefix\n";
   my ($length, $pattern, $prefix, $dxcc, $cq, $itu, $name, $cont, $lat, $lon, $tz) = split /,/,$rec;
