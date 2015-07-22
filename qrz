@@ -297,16 +297,16 @@ if (defined($lat) and not defined($grid)) {
     $grid = substr($grid, 0, 2);
   }
 }
-if (defined($grid)) {
+if (defined($grid) and "$grid" ne "bogus") {
   print "$grid";
-}
-if (defined($grid) and "$grid" ne "bogus" and not defined($lat)) {
-#if (defined($grid) and not defined($lat)) {
-  gridToCoord($grid);
-  print " [approx]:";
-}
-if ($geosrc eq "dxcc") {
-  print " [approx]:";
+
+  if (not defined($lat)) {
+    gridToCoord($grid);
+    print " [approx]:";
+  }
+  if ($geosrc eq "dxcc") {
+    print " [approx]:";
+  }
 }
 if (defined($lat)) {
   print " $lat, $lon";
