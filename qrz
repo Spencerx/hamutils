@@ -79,7 +79,7 @@ our $login_callsign = undef;
 our $login_password = undef;
 my $loginfile = $ENV{'HOME'} . "/.qrzlogin";
 my $cookiefile = $ENV{'HOME'} . "/.qrzcookies";
-my $baseurl = "http://www.qrz.com";
+my $baseurl = "https://www.qrz.com";
 
 if (-e ($loginfile)) {
   chmod 0600, $loginfile;
@@ -640,7 +640,7 @@ sub getAndParseData {
       }
       if ($key =~ /Trustee/) {
 	$trustee = $val;
-	if ( /http:\/\/www.qrz.com\/db\/([A-Z0-9]+)/ ) {
+	if ( /https?:\/\/www.qrz.com\/db\/([A-Z0-9]+)/ ) {
 	  $trustee = $1;
 	}
 	#print "trustee: $trustee\n";
