@@ -353,7 +353,7 @@ exit 0;
 sub doLogin {
 
   my $logoutgeturl = "$baseurl/logout/";
-  my $logingeturl = "$baseurl/li/";
+  my $logingeturl = "$baseurl/login/";
   my $logindiv = 0;
   my $loginaction;
   my $loginsecret;
@@ -378,7 +378,7 @@ sub doLogin {
       $loginaction = $1;
       next;
     }
-    if ($logindiv and /input type="hidden" name="s" value="([^"]+)"/) {
+    if ($logindiv and /input type="hidden" name="s" value="([^"]*)"/) {
       $loginsecret = $1;
       next;
     }
