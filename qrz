@@ -401,7 +401,7 @@ sub doLogin {
 
   open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
 		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
-		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password' " .
+		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
 		    "'$loginurl'");
   binmode(WGET, ":utf8");
   while (<WGET>) {
