@@ -160,6 +160,7 @@ if ($highlight eq "vt100") {
 our $url;
 
 my $encodedcall = uri_escape($call);
+$encodedcall =~ s/%20/+/g;
 $url = "$baseurl/lookup/?query=$encodedcall&mode=$type";
 
 our $useragentoption = "";
