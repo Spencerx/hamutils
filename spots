@@ -165,7 +165,7 @@ sub doPSKreporter
 
   #print "url: $url\n";
   # using IPv4 because I got greedy and got banned using ipv6.
-  open (WGET, '-|', "wget -4 -q -O - '$url'");
+  open (WGET, '-|', "wget -4 --timeout=4 -q -O - '$url'");
   #open (WGET, '-|', "cat $callsign.xml");
   while (<WGET>) {
     chomp;
@@ -271,7 +271,7 @@ sub doDXWatch
   #open (WGET, '-|', "cat dxwatch-$callsign.json");
   #open (WGET, '-|', "cat rb-N7XM.json");
   #print "$url\n";
-  open (WGET, '-|', "wget -q -O - '$url'");
+  open (WGET, '-|', "wget --timeout=4 -q -O - '$url'");
   while (<WGET>) {
     s/},"fname".*$//;
     s/{"s":{//;
