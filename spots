@@ -41,6 +41,7 @@ use v5.10;
 # configuration
 my $exitnonzeroonerror = 0;
 my $timestampfile = $ENV{'HOME'}.'/.spottimestamps';
+my $hamspotloginfile = $ENV{'HOME'}.'/.hamspotlogin';
 
 my $defaultSpots = 10;
 my $defaultSpotsForEggdrop = 3;
@@ -52,9 +53,9 @@ my $defaultSpotsForEggdrop = 3;
 my $username = $ENV{'USER'} || $ENV{'USERNAME'} || getpwuid($<);
 if ($#ARGV < 0 || length($ARGV[0]) == 0) {
   if ($username eq 'eggdrop') {
-    print "usage: !spots [--dxw] [--rbn] [--psk] <callsign> [limit]\n";
+    print "usage: !spots [--dxw] [--rbn] [--psk] [--ham] <callsign> [limit]\n";
   } else {
-    print "usage: $0 [--dxw] [--rbn] [--psk] <callsign> [limit]\n";
+    print "usage: $0 [--dxw] [--rbn] [--psk] [--ham] <callsign> [limit]\n";
   }
   exit $exitnonzeroonerror;
 }
@@ -73,6 +74,7 @@ if ($username eq 'eggdrop') {
 my $psk = 0;
 my $dxw = 0;
 my $rbn = 0;
+my $ham = 0;
 
 # when calling from eggdrop, parameters may be packed into first parameter.
 if ($#ARGV == 0 && $ARGV[0] =~ m/ /) {
@@ -96,6 +98,10 @@ while ($i <= $#ARGV) {
     $psk = 1;
     $i++; next;
   }
+  if ($ARGV[$i] =~ /--ham/) {
+    $ham = 1;
+    $i++; next;
+  }
   if (!defined($callsign)) {
     $callsign = uc $ARGV[$i];
     $i++; next;
@@ -106,10 +112,11 @@ while ($i <= $#ARGV) {
   $i++;
 }
 
-if ($dxw == 0 && $rbn == 0 && $psk == 0) {
+if ($dxw == 0 && $rbn == 0 && $psk == 0 && $ham == 0) {
   $dxw = 1;
   $rbn = 1;
   $psk = 1;
+  $ham = 1;
 }
 
 $callsign = "" unless defined $callsign;
@@ -142,6 +149,7 @@ my @spots;
 doPSKreporter() unless $psk == 0;
 doDXWatch(0) unless $dxw == 0;	  # dx watch
 doDXWatch(1) unless $rbn == 0;	  # reverse beacon network
+doHamspots() unless $ham == 0;
 
 my @sortedspots = sort { $b->{ts} <=> $a->{ts} } @spots;  # descending
 
@@ -370,6 +378,138 @@ sub getyearformonthday
   } else {
     return $now->year() - 1;
   }
+}
+
+sub doHamspots
+{
+  my $baseurl = "http://hamspots.net/";
+  our $historyurl = $baseurl . "history/";
+  our $cookiefile = $ENV{'HOME'}."/.hamspotscookies";
+
+  my $needlogin = 0;
+  my $token;
+
+  if (!-e $cookiefile) {
+    doHamspotsLogin();
+  }
+
+getHistory:
+  #print "getHistory: $historyurl\n";
+  open(WGET, '-|', "wget --timeout=4 -t 1 -q -O - --keep-session-cookies " .
+		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
+		    "'$historyurl'");
+  while (<WGET>) {
+    chomp;
+    if (/You must be logged in/) {
+      $needlogin = 1;
+    }
+  }
+  close WGET;
+
+  if ($needlogin != 0) {
+    doHamspotsLogin();
+    $needlogin = 0;
+    goto getHistory;
+  }
+
+  my $dtparser = DateTime::Format::Strptime->new(
+    #see strftime
+    pattern => '%b-%d %H:%M %Y',
+    time_zone => 'UTC',
+    on_error => 'undef');
+
+  my $bands_ref = {
+    2200 => 137,
+    630 => 470,
+    600 => 470,
+    160 => 1800,
+    80 => 3500,
+    60 => 5300,
+    40 => 7000,
+    30 => 10100,
+    20 => 14000,
+    17 => 18068,
+    15 => 21000,
+    12 => 24890,
+    10 => 28000,
+    6 => 50000,
+    2 => 144000};
+  my %freqs = %$bands_ref;
+
+  #print "get: $historyurl\n";
+  open(WGET, '-|', "wget --timeout=4 -t 1 -q -O - --keep-session-cookies " .
+    "--post-data 'a=call_data&hist_call_1=$callsign&submit_call=Search' " .
+    "--referer=$historyurl " .
+    "--save-cookies $cookiefile --load-cookies $cookiefile '$historyurl'");
+
+#  curl 'http://hamspots.net/history/' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: en-US,en;q=0.5' -H 'Connection: keep-alive' -H 'Cookie: PHPSESSID=49fa035286fe901952cce444f8ff8287; uid=1f21e6475cfc7687d390446c7d23c027' -H 'DNT: 1' -H 'Host: hamspots.net' -H 'Referer: http://hamspots.net/history/' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:40.0) Gecko/20100101 Firefox/40.0 Iceweasel/40.0.3' -H 'Content-Type: application/x-www-form-urlencoded' --data 'hist_call_1=IK5PVX&submit_call=Search&a=call_data'
+
+  while (<WGET>) {
+    #chomp;
+    if ( /tr class="(odd|evn)"/ ) {
+      #print;
+      my ($src, $date, $time, $de, $ctry, $st, $band, $sig, $mode) =
+	m/<td>\d+<\/td><td>(\w)<\/td><td>(\w+-\d+)<\/td><td>(\d\d:\d\d)<\/td>.*history\/\w+\/">([\w\/]+)<.*<td class="l">([^<]+)<\/td><td>(\w*)<\/td><td>(\d*)<\/td><td class="r">([^<]*)<\/td><td>([^<]*)<\/td>/;
+      #print "$src $date $time $de $ctry $st $band $sig $mode\n";
+
+      my ($ts, $dt);
+      if (defined($date) && defined ($time)) {
+	$dt = $dtparser->parse_datetime(
+	  $date . " " . $time . " " . getyearformonthday(split(/-/,$date)));
+	$ts = $dt->epoch();
+	#say "timestamp: $ts";
+      }
+
+      if (defined($ts)) {
+	#say "timestamp: $ts";
+	$lastspot = $ts unless ($ts < $lastspot);
+      }
+
+      if (defined ($sig) && $sig eq "&nbsp;") {
+	$sig = undef;
+      }
+      my $msg = "";
+
+      $msg .= "$mode" unless !defined($mode);
+      $msg .= " $sig dB" unless !defined($sig);
+      $msg .= " ($st)" if (defined($st) && length($st) > 0);
+
+      if (defined($de) && defined($ts) && defined($band)) {
+	push (@spots, {ts => $ts,
+		      src => "h",
+		      de => $de,
+		      dx => $callsign,
+		      f => $freqs{$band},
+		      msg => $msg }
+		  );
+      }
+    }
+  }
+  close WGET;
+}
+
+sub doHamspotsLogin
+{
+  our $cookiefile;
+  our $historyurl;
+  our $login_callsign = undef;
+  our $login_password = undef;
+
+  if (-e ($hamspotloginfile)) {
+    chmod 0600, $hamspotloginfile;
+    require($hamspotloginfile);
+  } else {
+    say "warning: unable to read file $hamspotloginfile"
+  }
+
+  #print "login: $historyurl\n";
+  open(WGET, '-|', "wget --timeout=4 -t 1 -q -O - --keep-session-cookies " .
+    "--post-data " .
+    "'loginCall=$login_callsign&loginPass=$login_password&a=login&p=history' " .
+    "--save-cookies $cookiefile '$historyurl'");
+  while (<WGET>) {
+  }
+  close WGET;
 }
 
 sub show
