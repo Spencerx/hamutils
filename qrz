@@ -550,6 +550,9 @@ sub getAndParseData {
       $mail =~ s/<\/p>//g;
       next;
     }
+    if (/<b>QSL:<\/b>\s*([^<]+)\s*</) {
+      $qsl = $1;
+    }
     if (/var qmail='([^']+)'/) {
       my $qmail = $1;
       my $cl = "";
