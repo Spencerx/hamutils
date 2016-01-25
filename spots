@@ -265,7 +265,8 @@ sub doDXWatch
     26 => "thor",
     27 => "throb",
     28 => "olivia",
-    29 => "contestia"};
+    29 => "contestia",
+    30 => "?"};
   my %modes = %$modes_ref;
 
   my $csv = Text::CSV->new({ sep_char => ',' });
@@ -307,6 +308,7 @@ sub doDXWatch
 	#say $vals;
 	($de, $freq, $dx, $snr, $wpm, $datetime, $age, $x, $y, $mode) = split /,/,$vals;
 	$cmt = "$snr dB, $wpm wpm";
+	#print "$mode\n";
     	$cmt = $modes{$mode} . " " . $cmt unless !defined $mode;
       } else {
 	$vals =~ s/\\\//\//g;
