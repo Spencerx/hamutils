@@ -102,6 +102,8 @@ if ($#ARGV < 0 || length($ARGV[0]) == 0) {
 my $call = undef;
 my $type = undef;
 my $i = 0;
+my $compact = 0;
+
 while ($i <= $#ARGV) {
   if ($ARGV[$i] =~ /--geo/) {
     my $latlon = $ARGV[$i+1];
@@ -110,6 +112,11 @@ while ($i <= $#ARGV) {
       #print "lat: $mylat\tlon: $mylon\n";
     }
     $i += 2;
+    next;
+  }
+  if ($ARGV[$i] =~ /--compact/) {
+    $compact = 1;
+    $i++;
     next;
   }
   if (defined($call)) {
@@ -249,7 +256,7 @@ if (defined($class)) {
 if (defined($iota)) {
   print " -- IOTA: $iota";
 }
-if (defined($codes)) {
+if (defined($codes) && $compact ne 1) {
   print " -- codes: $codes $codetext";
 }
 if (@prevcalls) {
@@ -287,8 +294,12 @@ if (defined($qsl) or defined($lotw) or defined($eqsl) or defined ($mailqsl)) {
     print " -- QSL: $qsltext";
   }
 }
-print "\n";
-print "$mail\n";
+if ($compact eq 0) {
+  print "\n";
+  print "$mail\n";
+} else {
+  print " -- $mail";
+}
 
 $geosrc = "?" unless defined($geosrc);
 
@@ -301,6 +312,9 @@ if (defined($lat) and not defined($grid)) {
   }
 }
 if (defined($grid) and "$grid" ne "bogus") {
+  if ($compact eq 1) {
+    print " -- ";
+  }
   print "$grid";
 
   if (not defined($lat)) {
@@ -312,7 +326,7 @@ if (defined($grid) and "$grid" ne "bogus") {
   }
 }
 if (defined($lat)) {
-  print " $lat, $lon";
+  print " $lat, $lon" unless $compact eq 1;
 
   if (defined($geosrc)) {
     print " [src: $geosrc]";
@@ -340,7 +354,7 @@ if (defined($lat)) {
     printf(" -- %.1f km, %.0f° from %s", $dist, $bearing, $localgrid);
   }
 }
-if (defined($grid) or defined($lat)) {
+if (defined($grid) or defined($lat) or $compact eq 1) {
   print "\n";
 }
 
