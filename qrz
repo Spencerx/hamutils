@@ -247,7 +247,7 @@ if (defined($class)) {
   print " -- $class class";
 }
 if (defined($iota)) {
-  print " -- IOTA: $iota ";
+  print " -- IOTA: $iota";
 }
 if (defined($codes)) {
   print " -- codes: $codes $codetext";
