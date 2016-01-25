@@ -505,7 +505,7 @@ sub getAndParseData {
     }
 
     if (/Service limit exceeded/) {
-      print "Service limit exceeded. Too many lookups.\n";
+      print "Service limit exceeded. Too many lookups. See $url\n";
       exit $exitnonzeroonerror;
     }
 
