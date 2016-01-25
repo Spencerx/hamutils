@@ -31,6 +31,7 @@
 
 use strict;
 use utf8;
+use Encode qw(decode);
 use feature 'unicode_strings';
 use Math::Trig;
 use Math::Trig 'great_circle_distance';
@@ -55,6 +56,8 @@ my $loginfile = $ENV{'HOME'} . "/.qrzlogin";
 if (-e ($loginfile)) {
   require($loginfile);
 }
+
+@ARGV = map { decode "utf-8", $_ } @ARGV;
 
 if ($#ARGV < 0 || length($ARGV[0]) == 0) {
   my $username = $ENV{'USER'} || $ENV{'USERNAME'} || getpwuid($<);
@@ -226,8 +229,7 @@ sub coordToGrid {
 }
 
 sub qthToCoords {
-  my $place = uri_escape(shift);
-  #my $place = shift;
+  my $place = uri_escape_utf8(shift);
   my $lat = undef;
   my $lon = undef;
   my $url = "http://maps.googleapis.com/maps/api/geocode/xml?address=$place&sensor=false";
