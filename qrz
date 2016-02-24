@@ -56,7 +56,7 @@ our $exitnonzeroonerror = 1;
 #our $highlight="irc";
 our $highlight="vt100";
 
-# change to user agent string to avoid using the default wget user agent
+# change to user agent string to avoid using the default wget or curl user agent
 #my $useragent = undef;
 our $useragent = "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.9.2) Gecko/20100115 Firefox/3.6";
 
@@ -68,8 +68,9 @@ our $mylat = undef;
 our $mylon = undef;
 
 
-
-
+# you can use your choice of wget or curl
+#our $httptool = "curl";
+our $httptool = "wget";
 
 
 ## end config options
@@ -174,15 +175,42 @@ $url = "$baseurl/lookup/?query=$encodedcall&mode=$type";
 
 our $useragentoption = "";
 if (defined($useragent)) {
-  $useragentoption = "-U \"$useragent\"";
+  if ($httptool eq "wget") {
+    $useragentoption = "-U \"$useragent\"";
+  } elsif ($httptool eq "curl") {
+    $useragentoption = "-A \"$useragent\"";
+  } else {
+    die "unknown http tool: $httptool";
+  }
 }
-
+ 
+our $httptool_base = undef;
+our $httptool_savecookies = undef;
+our $httptool_loadcookies = undef;
+our $httptool_postdata = undef;
+our $httptool_timeout = undef;
+if ($httptool eq "wget") {
+  $httptool_base = "wget -q -O - $useragentoption";
+  $httptool_savecookies = "--keep-session-cookies --save-cookies $cookiefile";
+  $httptool_loadcookies = "--load-cookies $cookiefile";
+  $httptool_postdata = "--post-data";
+  $httptool_timeout = "--timeout=";
+} elsif ($httptool eq "curl") {
+  $httptool_base = "curl -s $useragentoption";
+  $httptool_savecookies = "--cookie-jar $cookiefile";
+  $httptool_loadcookies = "--cookie $cookiefile";
+  $httptool_postdata = "--data";
+  $httptool_timeout = "--max-time ";
+} else {
+  die "unknown http tool: $httptool";
+}
+ 
 if (!-e $cookiefile) {
   #print "no cookie file -- doing login.\n";
   doLogin();
 }
 
-# note: this code depends on the wget cookie format
+# note: this code depends on the netscape cookie format (used by wget and curl)
 my $needlogin = 0;
 open (COOKIES, "<", $cookiefile);
 while (<COOKIES>) {
@@ -375,15 +403,12 @@ sub doLogin {
   my $loginaction;
   my $loginsecret;
 
-  # do logout
-  #open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logoutgeturl");
-  #while (<WGET>) {
-  #  next;
-  #}
-
-  open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logingeturl");
+  #open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logingeturl");
+  #open (WGET, '-|', "curl -s $useragentoption --cookie-jar $cookiefile $logingeturl");
+  open (WGET, '-|', "$httptool_base $httptool_savecookies $logingeturl");
   binmode(WGET, ":utf8");
   while (<WGET>) {
+    #print;
     chomp;
 
     if (/div id="login"/) {
@@ -416,15 +441,26 @@ sub doLogin {
     die "failed to get login information.";
   }
 
-  open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
-		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
-		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
+  #open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
+#		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
+#		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
+#		    "'$loginurl'");
+  
+#  open (WGET, '-|', "curl -s $useragentoption " .
+#		    "--cookie-jar $cookiefile " .
+#		    "--data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
+#		    "'$loginurl'");
+  open (WGET, '-|', "$httptool_base $httptool_savecookies $httptool_postdata " .
+		    "'s=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
 		    "'$loginurl'");
   binmode(WGET, ":utf8");
   while (<WGET>) {
     #print $_;
     if ( /Having trouble?/ ) {
       die "login failure.  please check username and password in \$HOME/.qrzlogin. ;;";
+    }
+    if ( /Cookie Failure/ ) {
+      # false alarm
     }
   }
   close (WGET);
@@ -442,8 +478,12 @@ sub getAndParseData {
   my $detail = 0;
 
   #print "$url\n";
-  open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
-		    "--timeout=15 --load-cookies $cookiefile '$url'");
+#  open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
+#		    "--timeout=15 --load-cookies $cookiefile '$url'");
+#  open (WGET, '-|', "curl -s $useragentoption " .
+#		    "--max-time 15 --cookie $cookiefile '$url'");
+  open (WGET, '-|', "$httptool_base ${httptool_timeout}15 " .
+		    "$httptool_loadcookies '$url'");
   binmode(WGET, ":utf8");
   while (<WGET>) {
     #print;
