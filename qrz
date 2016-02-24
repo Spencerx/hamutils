@@ -443,7 +443,7 @@ sub getAndParseData {
 
   #print "$url\n";
   open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
-		    "--load-cookies $cookiefile '$url'");
+		    "--timeout=15 --load-cookies $cookiefile '$url'");
   binmode(WGET, ":utf8");
   while (<WGET>) {
     #print;
