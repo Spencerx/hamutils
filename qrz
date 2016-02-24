@@ -62,8 +62,8 @@ our $useragent = "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.9.2) Gec
 
 # in order to calculate distance and bearing to the other station, set origin
 # latitude and longitude here, or in $HOME/.qrzlogin:
-#our $mylat=41.014753;
-#our $mylon=-74.142459;
+#our $mylat=40.7655;
+#our $mylon=-73.9742;
 our $mylat = undef;
 our $mylon = undef;
 
