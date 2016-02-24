@@ -403,11 +403,11 @@ sub doLogin {
   my $loginaction;
   my $loginsecret;
 
-  #open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logingeturl");
-  #open (WGET, '-|', "curl -s $useragentoption --cookie-jar $cookiefile $logingeturl");
-  open (WGET, '-|', "$httptool_base $httptool_savecookies $logingeturl");
-  binmode(WGET, ":utf8");
-  while (<WGET>) {
+  #open (HTTP, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logingeturl");
+  #open (HTTP, '-|', "curl -s $useragentoption --cookie-jar $cookiefile $logingeturl");
+  open (HTTP, '-|', "$httptool_base $httptool_savecookies $logingeturl");
+  binmode(HTTP, ":utf8");
+  while (<HTTP>) {
     #print;
     chomp;
 
@@ -425,7 +425,7 @@ sub doLogin {
       next;
     }
   }
-  close(WGET);
+  close(HTTP);
 
   my $loginurl;
   if ($loginaction =~ /^http/) {
@@ -441,20 +441,20 @@ sub doLogin {
     die "failed to get login information.";
   }
 
-  #open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
+  #open (HTTP, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
 #		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
 #		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
 #		    "'$loginurl'");
   
-#  open (WGET, '-|', "curl -s $useragentoption " .
+#  open (HTTP, '-|', "curl -s $useragentoption " .
 #		    "--cookie-jar $cookiefile " .
 #		    "--data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
 #		    "'$loginurl'");
-  open (WGET, '-|', "$httptool_base $httptool_savecookies $httptool_postdata " .
+  open (HTTP, '-|', "$httptool_base $httptool_savecookies $httptool_postdata " .
 		    "'s=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
 		    "'$loginurl'");
-  binmode(WGET, ":utf8");
-  while (<WGET>) {
+  binmode(HTTP, ":utf8");
+  while (<HTTP>) {
     #print $_;
     if ( /Having trouble?/ ) {
       die "login failure.  please check username and password in \$HOME/.qrzlogin. ;;";
@@ -463,7 +463,7 @@ sub doLogin {
       # false alarm
     }
   }
-  close (WGET);
+  close (HTTP);
 
   # technically this is a race condition, but not sure anyone cares
   chmod 0600, $cookiefile;
@@ -478,14 +478,14 @@ sub getAndParseData {
   my $detail = 0;
 
   #print "$url\n";
-#  open (WGET, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
+#  open (HTTP, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
 #		    "--timeout=15 --load-cookies $cookiefile '$url'");
-#  open (WGET, '-|', "curl -s $useragentoption " .
+#  open (HTTP, '-|', "curl -s $useragentoption " .
 #		    "--max-time 15 --cookie $cookiefile '$url'");
-  open (WGET, '-|', "$httptool_base ${httptool_timeout}15 " .
+  open (HTTP, '-|', "$httptool_base ${httptool_timeout}15 " .
 		    "$httptool_loadcookies '$url'");
-  binmode(WGET, ":utf8");
-  while (<WGET>) {
+  binmode(HTTP, ":utf8");
+  while (<HTTP>) {
     #print;
     chomp;
 
@@ -505,7 +505,7 @@ sub getAndParseData {
 	$matches = $1;
       }
 
-      while (<WGET>) {
+      while (<HTTP>) {
 	chomp;
 	if (/<td class="[^"]*"><a href="[^"]*">([^<]*)<\/a><\/td>/) {
 	  $resultcall = $1;
@@ -543,7 +543,7 @@ sub getAndParseData {
     }
 
     if (/The search for <.*> produced no result/) {
-      while(<WGET>) {
+      while(<HTTP>) {
 	if (/looks like a callsign from <[^>]*>([^<]+)</) {
 	  print uc($call), " not found -- $1?\n";
 	  exit $exitnonzeroonerror;
@@ -587,7 +587,7 @@ sub getAndParseData {
     if (/Login is required for additional detail./) {
       # For some reason it times out a login even though the cookies have not
       # yet expired.
-      close(WGET);
+      close(HTTP);
       doLogin();
       getAndParseData();
       return;
@@ -760,7 +760,7 @@ sub getAndParseData {
       next;
     }
   }
-  close(WGET);
+  close(HTTP);
 
   if (defined($geosrc) and $geosrc =~ /grid/) {
     $lat = undef;
