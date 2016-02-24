@@ -73,6 +73,10 @@ our $mylon = undef;
 our $httptool = "wget";
 
 
+# optionally skip the local CA store check for https
+our $skipCA = 0;
+#our $skipCA = 1;
+
 ## end config options
 
 
@@ -191,12 +195,14 @@ our $httptool_postdata = undef;
 our $httptool_timeout = undef;
 if ($httptool eq "wget") {
   $httptool_base = "wget -q -O - $useragentoption";
+  $httptool_base .= " --no-check-certificate" if $skipCA == 1;
   $httptool_savecookies = "--keep-session-cookies --save-cookies $cookiefile";
   $httptool_loadcookies = "--load-cookies $cookiefile";
   $httptool_postdata = "--post-data";
   $httptool_timeout = "--timeout=";
 } elsif ($httptool eq "curl") {
   $httptool_base = "curl -s $useragentoption";
+  $httptool_base .= " --insecure" if $skipCA == 1;
   $httptool_savecookies = "--cookie-jar $cookiefile";
   $httptool_loadcookies = "--cookie $cookiefile";
   $httptool_postdata = "--data";
