@@ -171,7 +171,8 @@ sub doPSKreporter
 #{"receiverCallsign":"JA8HZL","receiverLocator":"QN02TP","senderCallsign":"JA2HOL","senderLocator":"PM95ie20rh","frequency":10139114,"flowStartSeconds":1461063164,"mode":"JT65","isSender":1,"isReceiver":0,"senderDXCC":"Japan","senderDXCCCode":"JA","senderDXCCLocator":"PM96","senderLotwUpload":"2016-04-10","senderEqslAuthGuar":"A","sNR":-4},
 
   # using IPv4 because I got greedy and got banned using ipv6.
-  open (WGET, '-|', "wget -4 --timeout=4 -t 1 -q -O - '$url'");
+#  open (WGET, '-|', "wget -4 --timeout=4 -t 1 -q -O - '$url'");
+  open (WGET, '-|', "curl -4 --max-time 4 --retry 1 -s '$url'");
   while (<WGET>) {
     chomp;
     #if (/<lastSequenceNumber\s+value="(\d+)"/) {
@@ -281,7 +282,8 @@ sub doDXWatch
   #open (WGET, '-|', "cat dxwatch-$callsign.json");
   #open (WGET, '-|', "cat rb-N7XM.json");
   #print "$url\n";
-  open (WGET, '-|', "wget --timeout=4 -t 1 -q -O - '$url'");
+#  open (WGET, '-|', "wget --timeout=4 -t 1 -q -O - '$url'");
+  open (WGET, '-|', "curl --max-time 4 --retry 1 -s '$url'");
   while (<WGET>) {
     s/},"fname".*$//;
     s/{"s":{//;
