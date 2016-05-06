@@ -617,6 +617,10 @@ sub gridDist {
   my $origCoords = gridToCoord(shift);
   my $foreignCoords = gridToCoord(shift);
 
+  if (!defined($origCoords) || !defined($foreignCoords)) {
+    return -1;
+  }
+
   # convert to radians
   my ($origLat, $origLon) = split(/,/, $origCoords);
   my ($foreignLat, $foreignLon) = split(/,/, $foreignCoords);
