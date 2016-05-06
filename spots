@@ -562,8 +562,8 @@ sub updatelast
 sub gridToCoord {
   my $gridstr = shift;
 
-  if (not $gridstr =~ /^[A-R]{2}[0-9]{2}([A-X]{2})?/ ) {
-    print "\ninvalid grid\n";
+  if (not $gridstr =~ /^[A-R]{2}[0-9]{2}([A-X]{2})?/i ) {
+    print "invalid grid: $gridstr\n";
     return undef;
   }
 
