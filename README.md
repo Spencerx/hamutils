@@ -4,13 +4,13 @@ hamutils
 Some ham radio utilities.  Can be run from the command line or for use by an
 IRC bot.  Licensed under 2-clause BSD license.
 
-##qrz
+## qrz
 
 qrz scrapes the qrz.com web page for information on a ham radio callsign.
 qrz.com requires a login to get any detail, so the script mandates a login as
 well.
 
-###$HOME/.qrzlogin
+### $HOME/.qrzlogin
 
 Place the following lines in a $HOME/.qrzlogin file.
 
@@ -21,7 +21,7 @@ $mylat=38.897646;
 $mylon=-77.03648;
 ```
 
-###example use
+### example use
 
 ```
 $ qrz w1aw
@@ -61,14 +61,14 @@ WB3GAW: JOHN M KINNAMAN, JR PEN ARGYL PA
 truncated. 313 matches found. see http://www.qrz.com/lookup/?query=W%2AAW&mode=callsign
 ```
 
-##grid
+## grid
 
 grid will map grid squares to place names and place names to grid squares.  It
 can use the $mylat and $mylon values in the $HOME/.qrzlogin file as well to
 provide an origin for distance calculations.  Also, an origin may be specified
 on the command line using the 'from' or 'de' keywords.
 
-###example use
+### example use
 
 ```
 $ grid tokyo, japan
@@ -93,7 +93,7 @@ $ grid IO92vw de FN20rs
 IO92vw: 52.9375, -0.2083: Boston, Lincolnshire, UK -- 5552.8 km, 49° from FN20rs
 ```
 
-##lotwreportcheck
+## lotwreportcheck
 
 Compare LoTW last known upload date with your ADIF log files and lotw QSL
 report.  Produces report of QSOs which should be confirmed, but are not.
@@ -102,7 +102,7 @@ A QSO is considered "should be confirmed" if it is in your log, and the remote
 station has a known LoTW upload date that is more recent than your log, and if
 there is no QSL record in the LoTW report.
 
-###LoTW report
+### LoTW report
 
 Retreive your LoTW report from here, after editing ``YOURCALL`` and
 ``YOURPASS`` to match your account:
@@ -114,12 +114,12 @@ parameter to lotwreportcheck.
 Last known LoTW upload date is maintained in a list compiled by WD5EAE.  wget
 is required to retrieve it.  Source: http://www.wd5eae.org/LoTW_Data.txt
 
-###Known bugs
+### Known bugs
 - only checks one QSO per date
 - assumes ADIF log files are with one QSO per line like those produced by
   fldigi, WSJT-X, and xlog. LoTW report ADIF is handled separately.
 
-###Example use
+### Example use
 
 ```
 $ lotwreportcheck lotwreport.adi ~/.wsjtx/*adi
@@ -134,7 +134,7 @@ missing: SV2DFK qso: 20140425   last upload: 20140630
 missing: ZS6WN  qso: 20140425   last upload: 20140731
 ```
 
-##dxcc
+## dxcc
 
 Get information about the DXCC entity of a callsign or prefix.  Uses
 ``cty.dat`` file for DXCC information, which is the same format used by tools
@@ -143,20 +143,20 @@ like fldigi and xlog.  Retrieve the file from
 CTY](http://www.country-files.com/big-cty/) version, which can be downloaded
 [here](http://www.country-files.com/category/big-cty/).
 
-###cty.dat placement
+### cty.dat placement
 
 The default location to look for cty.dat is ``$HOME/.cty.dat`` (a hidden
 dotfile).  This can be made a symlink to your fldigi or xlog directory, or
 another similar location.
 
-###Clublog most-wanted rank
+### Clublog most-wanted rank
 
 Clublog most-wanted rank can be scraped using the ``mostwanted-scrape.sh``
 script.  It will create a file with ranking information in
 ``$HOME/.mostwanted.txt``.  The source of the ranking is the list here:
 https://secure.clublog.org/mostwanted.php
 
-###Example use
+### Example use
 
 ```
 $ dxcc KC4AAA
@@ -175,7 +175,7 @@ $ dxcc willis
 VK9W: Willis Island: OC CQ:30 ITU:55 MW:34
 ```
 
-###Possible future enhancements
+### Possible future enhancements
 
 * provide range to DXCC based on user latitude/longitude
 * provide local time at the DXCC location
