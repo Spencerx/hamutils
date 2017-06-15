@@ -2,7 +2,7 @@
 
 # qrz.com callsign lookup.  2-clause BSD license.
 
-# Copyright 2016 Chris Ruvolo (KC2SYK). All rights reserved.
+# Copyright 2017 Chris Ruvolo (KC2SYK). All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -405,74 +405,45 @@ sub doLogin {
 
   my $logoutgeturl = "$baseurl/logout/";
   my $logingeturl = "$baseurl/login/";
-  my $logindiv = 0;
-  my $loginaction;
-  my $loginsecret;
+  my $nojs;
 
-  #open (HTTP, '-|', "wget -q $useragentoption -O - --keep-session-cookies --save-cookies $cookiefile $logingeturl");
-  #open (HTTP, '-|', "curl -s $useragentoption --cookie-jar $cookiefile $logingeturl");
   open (HTTP, '-|', "$httptool_base $httptool_savecookies $logingeturl");
   binmode(HTTP, ":utf8");
   while (<HTTP>) {
     #print;
     chomp;
-
-    if (/div id="login"/) {
-      $logindiv = 1;
-      next;
-    }
-
-    if ($logindiv and /form name="loginform" action="([^"]+)"/) {
-      $loginaction = $1;
-      next;
-    }
-    if ($logindiv and /input type="hidden" name="s" value="([^"]*)"/) {
-      $loginsecret = $1;
+    if (!defined($nojs) and /value="([0-9a-f]+)" name="nojs">/) {
+      $nojs = $1;
+      #print "nojs: $nojs\n";
       next;
     }
   }
   close(HTTP);
 
-  my $loginurl;
-  if ($loginaction =~ /^http/) {
-    $loginurl = $loginaction;
-  } else {
-    $loginurl = $baseurl . $loginaction;
-  }
-
-  #print "loginaction = $loginaction\n";
-  #print "loginsecret = $loginsecret\n";
-
-  if (!defined($loginaction) || !defined($loginsecret)) {
+  if (!defined($nojs)) {
     die "failed to get login information.";
   }
 
-  #open (HTTP, '-|', "wget -q $useragentoption -O - --keep-session-cookies " .
-#		    "--save-cookies $cookiefile --load-cookies $cookiefile " .
-#		    "--post-data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
-#		    "'$loginurl'");
-  
-#  open (HTTP, '-|', "curl -s $useragentoption " .
-#		    "--cookie-jar $cookiefile " .
-#		    "--data 's=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
-#		    "'$loginurl'");
   open (HTTP, '-|', "$httptool_base $httptool_savecookies $httptool_postdata " .
-		    "'s=$loginsecret&username=$login_callsign&password=$login_password&loginuri=https://www.qrz.com&flush=1' " .
-		    "'$loginurl'");
+		    "'nojs=${nojs}&username=${login_callsign}&password=${login_password}&flush=1' " .
+		    "'$logingeturl'");
   binmode(HTTP, ":utf8");
+  my $fail = 0;
   while (<HTTP>) {
     #print $_;
-    if ( /Having trouble?/ ) {
-      die "login failure.  please check username and password in \$HOME/.qrzlogin. ;;";
-    }
-    if ( /Cookie Failure/ ) {
-      # false alarm
+    if (/<div class="alert alert-(warning|danger)" role="alert">([^<]*)<\/div>/) {
+      print "$2\n";
+      $fail = 1;
     }
   }
   close (HTTP);
 
   # technically this is a race condition, but not sure anyone cares
   chmod 0600, $cookiefile;
+
+  if ($fail != 0) {
+    exit $exitnonzeroonerror;
+  }
 }
 
 
@@ -594,6 +565,7 @@ sub getAndParseData {
       # For some reason it times out a login even though the cookies have not
       # yet expired.
       close(HTTP);
+      #print "Login required\n";
       doLogin();
       getAndParseData();
       return;
